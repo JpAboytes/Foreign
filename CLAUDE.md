@@ -19,6 +19,11 @@ Plan maestro y estado: `docs/PRODUCTION_ROADMAP.md` (fuente de verdad; actualíz
 - Tests: `npx jest --watchAll=false`
 - Builds y envío a tiendas: `eas build -p <ios|android> --profile <development|preview|production>` y `eas submit`
 
+## Infraestructura
+- Supabase: proyecto `Foreign`, ref **`zoidnphuqxuvocoelrfj`** (us-east-1), organización JpAboytes. Por ahora es el único entorno; las variables públicas están en `MyApp/.env.example`.
+- Expo/EAS: proyecto "foreign" en la cuenta de Expo (usa el Expo MCP y las skills de Expo para enlazarlo y consultar docs).
+- Rama base: `main`. Una rama `agents/<AAAA-MM-DD>-<tarea>` por tarea, con PR contra `main`.
+
 ## Reglas
 - Una rama y un PR por tarea del roadmap; un PR no mezcla upgrade de SDK, migración de backend y cambios de UI.
 - Ningún secreto en git. Las variables públicas van con prefijo `EXPO_PUBLIC_`; las privadas (claves de LLM, la service role de Supabase) solo viven en Edge Functions o en los secretos de EAS.

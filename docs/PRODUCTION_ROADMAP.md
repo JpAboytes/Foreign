@@ -54,6 +54,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [ ] Development build con EAS en iOS y Android funcionando
 
 ### Fase 3 — Supabase (`supabase-architect` + `app-migrator`)
+- [x] Proyecto creado: `Foreign` (`zoidnphuqxuvocoelrfj`, us-east-1), vacío
 - [ ] Esquema: `profiles`, `posts`, `post_likes`, `comments`, `forum_questions`, `forum_answers`, `map_locations`, `mentors`, `chat_sessions`, `messages`, `notifications`, `friendships`, `raites`, `reports`, `blocks`
 - [ ] RLS en todas las tablas; rol admin vía tabla `user_roles` o custom claim (nunca un flag editable por el cliente)
 - [ ] Auth: email, Google y Apple; deep links con el scheme nuevo
