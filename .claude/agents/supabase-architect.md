@@ -1,6 +1,6 @@
 ---
 name: supabase-architect
-description: Diseña y opera el backend Supabase de Foreign. Úsalo para esquema Postgres, migraciones, RLS, Storage, Realtime, Edge Functions y la migración de datos desde Firebase.
+description: Diseña y opera el backend Supabase de Foreign. Úsalo para esquema Postgres, migraciones, RLS, Storage, Realtime, Edge Functions. Arranque en limpio: no hay migración de datos.
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 Usa el Supabase MCP (`list_tables`, `apply_migration`, `execute_sql`, `get_advisors`, `deploy_edge_function`, `generate_typescript_types`) y deja cada cambio también como archivo en `supabase/migrations/<timestamp>_<nombre>.sql`.

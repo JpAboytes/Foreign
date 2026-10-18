@@ -2,12 +2,12 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: "MyApp",
+    name: "Foreign",
     slug: "MyApp",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "myapp",
+    scheme: "foreign",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     owner: "foreign-project",
@@ -17,7 +17,7 @@ export default {
       backgroundColor: "#ffffff",
     },
     ios: {
-      bundleIdentifier: "com.foreign.app",
+      bundleIdentifier: "mx.foreign.app",
       supportsTablet: true,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -29,7 +29,7 @@ export default {
       },
     },
     android: {
-      package: "com.foreign.app",
+      package: "mx.foreign.app",
       googleServicesFile: "./google-services.json",
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",

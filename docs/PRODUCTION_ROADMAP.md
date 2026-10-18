@@ -41,7 +41,9 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 ## 3. Fases
 
 ### Fase 1 — Base sana (bloquea todo lo demás)
-- [ ] Rebrand de identidad: nombre, slug, scheme, bundle ID y package definitivos (decisión del dueño)
+- [x] Bundle ID/package `mx.foreign.app`, nombre "Foreign" y scheme `foreign`
+- [ ] Enlazar `owner`/`projectId`/`updates.url` del proyecto Expo "foreign"
+- [ ] Eliminar el chatbot (`app/extra/chatbot.tsx`, `services/chatbotService.ts`, `hooks/useChatbot.ts`, componentes y entradas de navegación)
 - [ ] Arreglar los 18 errores de `tsc` y los checks de `expo-doctor`
 - [ ] Quitar el override de `metro.config.js` y pasar los secretos a `EXPO_PUBLIC_*` / secretos de EAS
 - [ ] CI en GitHub Actions: `tsc`, jest y `expo-doctor` en cada PR
@@ -57,8 +59,6 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [ ] Auth: email, Google y Apple; deep links con el scheme nuevo
 - [ ] Storage: buckets `avatars` y `post-images` con políticas
 - [ ] Realtime para chat y notificaciones; triggers que encolan push vía Edge Function
-- [ ] Edge Function `chatbot` (clave del LLM en el servidor, rate limit, moderación) que reemplaza a magicloops
-- [ ] Script de migración de datos Firestore/RTDB/Storage → Supabase (solo si hay usuarios reales que conservar)
 - [ ] Retirar Firebase y borrar los archivos `google-services.json` / `GoogleService-Info.plist`
 
 ### Fase 4 — Cumplimiento y calidad (`security-compliance` + `qa-engineer`)
@@ -76,8 +76,8 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [ ] Fichas de las tiendas: textos, screenshots, clasificación por edad, Data Safety, cuenta demo
 - [ ] EAS Update en el canal `production` para hotfixes
 
-## 4. Decisiones pendientes del dueño
-1. Nombre comercial, bundle ID y package definitivos (hoy `com.foreign.app`, que puede estar ocupado).
-2. ¿Hay usuarios o datos reales en Firebase que conservar, o se arranca en limpio?
-3. Proveedor de LLM para el chatbot.
-4. ¿Cuenta de Expo `foreign-project` (actual) o una nueva?
+## 4. Decisiones del dueño (2026-10-18)
+1. Bundle ID / package: **`mx.foreign.app`**; nombre visible "Foreign"; scheme `foreign`.
+2. **Arranque en limpio**: no se migran datos de Firebase (se omite el script de migración).
+3. **El chatbot queda fuera del lanzamiento**: se elimina la pantalla, el servicio y la ruta, y no se crea la Edge Function.
+4. Expo: se usa el proyecto "foreign" que ya existe en la cuenta de Expo (falta enlazar su `projectId`/`owner` en `app.config.js`).
