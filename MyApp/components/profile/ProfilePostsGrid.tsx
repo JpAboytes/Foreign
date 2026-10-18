@@ -10,18 +10,12 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Post } from '../../services/postService';
 
 const { width } = Dimensions.get('window');
 const numColumns = Platform.OS === 'web' ? 3 : 2;
 const itemWidth = (width - 48) / numColumns;
 
-interface Post {
-  id: string;
-  image: string;
-  userId: string;
-  caption?: string;
-  createdAt: any;
-}
 
 interface ProfilePostsGridProps {
   posts: Post[];

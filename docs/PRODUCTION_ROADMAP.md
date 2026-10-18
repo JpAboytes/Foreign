@@ -44,8 +44,8 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [x] Bundle ID/package `mx.foreign.app`, nombre "Foreign" y scheme `foreign`
 - [ ] Enlazar `owner`/`projectId`/`updates.url` del proyecto Expo "foreign"
 - [ ] Eliminar el chatbot (`app/extra/chatbot.tsx`, `services/chatbotService.ts`, `hooks/useChatbot.ts`, componentes y entradas de navegación)
-- [ ] Arreglar los 18 errores de `tsc` y los checks de `expo-doctor`
-- [ ] Quitar el override de `metro.config.js` y pasar los secretos a `EXPO_PUBLIC_*` / secretos de EAS
+- [~] Arreglar los 18 errores de `tsc` (17 resueltos aquí, el 18.º lo cierra el PR del chatbot) y los checks de `expo-doctor` (metro resuelto; 3 restantes requieren red a Expo)
+- [~] Override de `metro.config.js` quitado (`unstable_enableSymlinks`; se mantiene `unstable_enablePackageExports=false` por Firebase hasta la Fase 3). Pendiente: pasar los secretos a `EXPO_PUBLIC_*` / secretos de EAS
 - [ ] CI en GitHub Actions: `tsc`, jest y `expo-doctor` en cada PR
 
 ### Fase 2 — Upgrade de Expo (`expo-upgrader`)
