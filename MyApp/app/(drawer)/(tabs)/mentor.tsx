@@ -4,12 +4,11 @@ import { useUser } from '../../../context/UserContext';
 import MaxWidthContainer from '../../../components/MaxWidthContainer';
 import MentorListScreen from '../../extra/mentorList';
 import ReceivedChatsScreen from '../../extra/receivedChats';
-import ChatbotScreen from '../../extra/chatbot';
 
 export default function MentorScreen() {
   const { userProfile } = useUser();
   const [isMentor, setIsMentor] = useState(false);
-  const [activeTab, setActiveTab] = useState<'mentores' | 'recibidos' | 'chatbot'>('mentores');
+  const [activeTab, setActiveTab] = useState<'mentores' | 'recibidos'>('mentores');
 
   useEffect(() => {
     if (userProfile?.isMentor === true) {
@@ -52,28 +51,11 @@ export default function MentorScreen() {
               </Text>
             </TouchableOpacity>
           )}
-
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              activeTab === 'chatbot' && styles.activeTab,
-              { flex: isMentor ? 1 : 1.5 },
-            ]}
-            onPress={() => setActiveTab('chatbot')}
-          >
-            <Text style={[
-              styles.tabText, 
-              activeTab === 'chatbot' && styles.activeTabText
-            ]}>
-              Chatbot
-            </Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
           {activeTab === 'mentores' && <MentorListScreen />}
           {activeTab === 'recibidos' && isMentor && <ReceivedChatsScreen />}
-          {activeTab === 'chatbot' && <ChatbotScreen />}
         </View>
       </MaxWidthContainer>
     </SafeAreaView>

@@ -43,7 +43,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 ### Fase 1 — Base sana (bloquea todo lo demás)
 - [x] Bundle ID/package `mx.foreign.app`, nombre "Foreign" y scheme `foreign`
 - [ ] Enlazar `owner`/`projectId`/`updates.url` del proyecto Expo "foreign"
-- [ ] Eliminar el chatbot (`app/extra/chatbot.tsx`, `services/chatbotService.ts`, `hooks/useChatbot.ts`, componentes y entradas de navegación)
+- [x] Eliminar el chatbot (`app/extra/chatbot.tsx`, `services/chatbotService.ts`, `hooks/useChatbot.ts`, componentes y entradas de navegación)
 - [ ] Arreglar los 18 errores de `tsc` y los checks de `expo-doctor`
 - [ ] Quitar el override de `metro.config.js` y pasar los secretos a `EXPO_PUBLIC_*` / secretos de EAS
 - [ ] CI en GitHub Actions: `tsc`, jest y `expo-doctor` en cada PR
