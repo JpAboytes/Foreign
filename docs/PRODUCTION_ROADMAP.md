@@ -46,7 +46,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [ ] Eliminar el chatbot (`app/extra/chatbot.tsx`, `services/chatbotService.ts`, `hooks/useChatbot.ts`, componentes y entradas de navegación)
 - [ ] Arreglar los 18 errores de `tsc` y los checks de `expo-doctor`
 - [ ] Quitar el override de `metro.config.js` y pasar los secretos a `EXPO_PUBLIC_*` / secretos de EAS
-- [ ] CI en GitHub Actions: `tsc`, jest y `expo-doctor` en cada PR
+- [x] CI en GitHub Actions: `tsc`, jest y `expo-doctor` en cada PR (`.github/workflows/ci.yml`)
 
 ### Fase 2 — Upgrade de Expo (`expo-upgrader`)
 - [ ] Subir al SDK más reciente, un SDK por PR si hace falta, siguiendo los changelogs con el Expo MCP
