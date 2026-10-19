@@ -26,7 +26,7 @@ export function useMarkers(confirmedTypes: string[], userLocation: LatLng | null
   const [isLoading, setIsLoading] = useState(false);
 
   // Memoriza la instancia del servicio para que no se recree en cada render
-  const placesService = useMemo(() => new GooglePlacesService({ apiKey: 'APIKEY' }), []);
+  const placesService = useMemo(() => new GooglePlacesService({ apiKey: process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY ?? '' }), []);
 
   // Función para saber si el caché está expirado
   const isCacheExpired = (timestamp: number) => {

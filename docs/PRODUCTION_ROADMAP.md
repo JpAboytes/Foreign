@@ -45,7 +45,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [ ] Enlazar `owner`/`projectId`/`updates.url` del proyecto Expo "foreign"
 - [ ] Eliminar el chatbot (`app/extra/chatbot.tsx`, `services/chatbotService.ts`, `hooks/useChatbot.ts`, componentes y entradas de navegación)
 - [ ] Arreglar los 18 errores de `tsc` y los checks de `expo-doctor`
-- [ ] Quitar el override de `metro.config.js` y pasar los secretos a `EXPO_PUBLIC_*` / secretos de EAS
+- [ ] Quitar el override de `metro.config.js` (PR #3) — [x] clave de Google Places pasada a `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY`
 - [ ] CI en GitHub Actions: `tsc`, jest y `expo-doctor` en cada PR
 
 ### Fase 2 — Upgrade de Expo (`expo-upgrader`)
