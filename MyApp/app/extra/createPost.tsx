@@ -3,11 +3,8 @@ import { useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, Alert, Image, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../../firebase';
-import {  doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { firestore } from '../../firebase';
+import { createPostRecord, uploadPostImage } from '../../services/postService';
+import { useUser } from '../../context/UserContext';
 import { useRouter } from 'expo-router';
 import { Dimensions } from 'react-native';
 import MaxWidthContainer from '../../components/MaxWidthContainer';
@@ -23,34 +20,18 @@ export default function createPost() {
   const [caption, setCaption] = useState('');
   const router = useRouter();
   const { height, width } = Dimensions.get('window');
+  const { user } = useUser();
 
 
 
-  const savePostToFirestore = async (caption: string, imageUrl: string) => {
-    const auth = getAuth();
-    const currentUser = auth.currentUser;
-  
-    if (!currentUser || !imageUrl) {
+  const savePost = async (caption: string, imageUrl: string) => {
+    if (!user || !imageUrl) {
       Alert.alert("Faltan datos", "No se puede guardar sin imagen o usuario.");
       return;
     }
   
-    const postId = Date.now().toString();
-  
-    const postData = {
-      postId,
-      caption,
-      text: caption,
-      image: imageUrl,
-      userId: currentUser.uid,
-      userName: currentUser.displayName ?? "Usuario sin nombre",
-      userPhoto: currentUser.photoURL ?? "",
-      likes: {},
-      createdAt: serverTimestamp(),
-    };
-  
     try {
-      await setDoc(doc(firestore, "feedPosts", postId), postData);
+      await createPostRecord(user.id, caption, imageUrl);
       Alert.alert("✅ Publicación guardada");
       router.replace('/(drawer)/(tabs)/feed');
     } catch (error) {
@@ -63,19 +44,13 @@ export default function createPost() {
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
   };
 
-  const uriToBlob = async (uri: string): Promise<Blob> => {
-    const response = await fetch(uri);
-    return await response.blob();
-  };
+  
 
-  const uploadToFirebase = async (uri: string): Promise<string | null> => {
+  const uploadImage = async (uri: string): Promise<string | null> => {
     try {
       setLoading(true);
-      const blob = await uriToBlob(uri);
-      const fileName = `images/${Date.now()}.jpg`;
-      const storageRef = ref(storage, fileName);
-      await uploadBytes(storageRef, blob);
-      const url = await getDownloadURL(storageRef);
+      if (!user) throw new Error('Usuario no autenticado');
+      const url = await uploadPostImage(uri, user.id);
       setLoading(false);
       return url;
     } catch (err: any) {
@@ -99,7 +74,7 @@ export default function createPost() {
   
   const handleImage = async (uri: string) => {
     const processed = await manipulateImage(uri);
-    const url = await uploadToFirebase(processed.uri);
+    const url = await uploadImage(processed.uri);
     if (url) {
       setUploadedImageUrl(url);
     }
@@ -186,7 +161,7 @@ export default function createPost() {
     
   
             <TouchableOpacity
-              onPress={() => savePostToFirestore(caption, uploadedImageUrl)}
+              onPress={() => savePost(caption, uploadedImageUrl)}
               style={[styles.galleryButton, { marginTop: 20 }]}
             >
               <Text style={styles.text}>📤 Publicar</Text>
