@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   fab: {
-    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+    position: 'absolute',
     bottom: 30,
     right: 20,
     backgroundColor: '#4f0c2e',

@@ -29,6 +29,8 @@ export interface Mentor {
   isAdmin?: boolean;
   isMentor?: boolean;
   rating?: number; // Calificación del mentor
+  topics?: string[];
+  isAvailable?: boolean;
 }
 
 export interface ChatSession {

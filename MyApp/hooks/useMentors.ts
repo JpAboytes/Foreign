@@ -45,7 +45,7 @@ export function useMentors(userUniversity?: string) {
     const term = searchTerm.toLowerCase().trim();
     const filtered = mentorsList.filter(mentor => 
       mentor.name.toLowerCase().includes(term) ||
-      mentor.university.toLowerCase().includes(term) ||
+      mentor.university?.toLowerCase().includes(term) ||
       mentor.topics?.some(topic => topic.toLowerCase().includes(term))
     );
     
