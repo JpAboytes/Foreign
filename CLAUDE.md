@@ -12,9 +12,9 @@ Plan maestro y estado: `docs/PRODUCTION_ROADMAP.md` (fuente de verdad; actualíz
   - `hooks/`, `context/`, `components/`, `models/`, `utils/`.
 - `.claude/agents/` — definiciones del equipo de agentes.
 
-## Comandos (desde `MyApp/`)
+## Comandos (desde `MyApp/`, Node 22.13+)
 - Instalar: `npm ci`
-- Typecheck: `npx tsc --noEmit` (meta: 0 errores; hoy da 18)
+- Typecheck: `npx tsc --noEmit` (debe quedar en 0 errores)
 - Salud del proyecto Expo: `npx expo-doctor`
 - Tests: `npx jest --watchAll=false`
 - Builds y envío a tiendas: `eas build -p <ios|android> --profile <development|preview|production>` y `eas submit`

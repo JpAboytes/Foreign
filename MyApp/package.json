@@ -14,44 +14,45 @@
     "preset": "jest-expo"
   },
   "dependencies": {
-    "@expo/vector-icons": "^14.0.2",
-    "@react-native-async-storage/async-storage": "2.1.2",
-    "@react-native-picker/picker": "2.11.0",
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-picker/picker": "2.11.4",
     "axios": "^1.9.0",
-    "expo": "53.0.12",
-    "expo-auth-session": "~6.2.0",
-    "expo-camera": "~16.1.8",
-    "expo-constants": "~17.1.6",
-    "expo-crypto": "~14.1.5",
-    "expo-file-system": "~18.1.8",
-    "expo-font": "~13.3.0",
-    "expo-haptics": "~14.1.4",
-    "expo-image-manipulator": "~13.1.7",
-    "expo-image-picker": "~16.1.4",
-    "expo-linking": "~7.1.5",
-    "expo-location": "~18.1.5",
-    "expo-router": "~5.1.0",
-    "expo-splash-screen": "~0.30.9",
-    "expo-status-bar": "~2.2.3",
-    "expo-system-ui": "~5.0.9",
-    "expo-updates": "~0.28.15",
-    "expo-web-browser": "~14.2.0",
+    "expo": "^58.0.17",
+    "expo-auth-session": "~58.0.14",
+    "expo-camera": "~58.0.12",
+    "expo-constants": "~58.0.13",
+    "expo-crypto": "~58.0.7",
+    "expo-file-system": "~58.0.10",
+    "expo-font": "~58.0.9",
+    "expo-haptics": "~58.0.7",
+    "expo-image-manipulator": "~58.0.15",
+    "expo-image-picker": "~58.0.10",
+    "expo-linking": "~58.0.14",
+    "expo-location": "~58.0.18",
+    "expo-router": "~58.0.25",
+    "expo-splash-screen": "~58.0.11",
+    "expo-status-bar": "~58.0.4",
+    "expo-system-ui": "~58.0.6",
+    "expo-updates": "~58.0.18",
+    "expo-web-browser": "~58.0.6",
     "firebase": "10.7.1",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "react-native": "0.79.4",
-    "react-native-gesture-handler": "~2.24.0",
-    "react-native-maps": "1.20.1",
-    "react-native-reanimated": "~3.17.4",
-    "react-native-safe-area-context": "5.4.0",
-    "react-native-screens": "~4.11.1",
-    "react-native-web": "^0.20.0"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.0",
+    "react-native-gesture-handler": "~3.3.0",
+    "react-native-maps": "1.29.11",
+    "react-native-reanimated": "4.7.1",
+    "react-native-safe-area-context": "~5.10.1",
+    "react-native-screens": "~4.30.0",
+    "react-native-web": "~0.21.4",
+    "react-native-worklets": "0.13.0"
   },
   "devDependencies": {
-    "@types/react": "~19.0.10",
-    "jest-expo": "~53.0.7",
-    "react-test-renderer": "^19.0.0",
-    "typescript": "~5.8.3"
+    "@types/react": "~19.3.0",
+    "jest-expo": "~58.0.12",
+    "react-test-renderer": "19.3.0",
+    "typescript": "~6.0.3"
   },
   "expo": {
     "doctor": {
@@ -59,5 +60,8 @@
         "listUnknownPackages": false
       }
     }
+  },
+  "overrides": {
+    "react-server-dom-webpack": "19.3.0"
   }
 }

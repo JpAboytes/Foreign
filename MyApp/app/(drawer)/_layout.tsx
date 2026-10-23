@@ -3,7 +3,7 @@ import { Drawer } from 'expo-router/drawer';
 import { Ionicons } from '@expo/vector-icons'; // Or your icon library
 import { View, Text, Pressable, StyleSheet, TouchableOpacity, Switch, Image } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
-import { DrawerActions } from "@react-navigation/native";
+import { DrawerActions } from "expo-router/react-navigation";
 import * as Haptics from 'expo-haptics';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
@@ -69,7 +69,7 @@ export default function DrawerLayout() {
               drawerLabel: 'Mensajes',
               title: 'Mis Mensajes',
               drawerIcon: ({ size, color }) => (
-                <Ionicons name="chatbubbles-outline" size={size} color={color} />
+                <Ionicons name="chatbubbles-outline" size={size} color={color as string} />
               ),
             }}
           />

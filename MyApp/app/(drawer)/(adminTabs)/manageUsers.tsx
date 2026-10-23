@@ -563,7 +563,7 @@ export default function ManagementScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle="light-content" />
       <MaxWidthContainer style={{maxWidth: 1000}}>  
         {/* Selector de categorías */}
         <View style={styles.categorySelectorContainer}>

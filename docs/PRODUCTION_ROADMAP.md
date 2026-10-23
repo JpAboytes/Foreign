@@ -6,7 +6,7 @@ Estado: **Fase 0 completada (diagnóstico)** · Fecha: 2026-10-18
 
 | Área | Hallazgo | Severidad |
 |---|---|---|
-| Stack | Expo SDK 53.0.12, RN 0.79.4, React 19.0, expo-router 5, New Architecture activada | Hay que actualizar al SDK más reciente |
+| Stack | Expo SDK 53.0.12, RN 0.79.4, React 19.0, expo-router 5 (actualizado a SDK 58 el 2026-10-23) | Resuelto |
 | Backend | Firebase 10.7 (JS SDK): Firestore (13 colecciones), Realtime DB (`messages`), Storage y Auth (email + Google) | Se migra a Supabase |
 | Calidad | `tsc` da **18 errores**; `expo-doctor` falla 4 de 18 checks (esquema de config, `metro.config.js` con override, versiones nativas) | Alta |
 | Tests | 1 solo test (plantilla `StyledText-test.js`) | Alta |
@@ -44,12 +44,12 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [x] Bundle ID/package `mx.foreign.app`, nombre "Foreign" y scheme `foreign`
 - [ ] Enlazar `owner`/`projectId`/`updates.url` del proyecto Expo "foreign"
 - [x] Eliminar el chatbot (`app/extra/chatbot.tsx`, `services/chatbotService.ts`, `hooks/useChatbot.ts`, componentes y entradas de navegación)
-- [~] Errores de `tsc` corregidos (18 → 0); `expo-doctor`: metro resuelto, quedan 3 checks que requieren red a Expo
-- [~] Override de `metro.config.js` quitado (`unstable_enableSymlinks`; se mantiene `unstable_enablePackageExports=false` por Firebase hasta la Fase 3). Clave de Google Places ya en `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY`; pendiente: crearla en Google Cloud y definirla con `eas env:create`
+- [x] Errores de `tsc` corregidos (18 → 0) y `expo-doctor` en verde (SDK 58)
+- [x] `metro.config.js` y `babel.config.js` eliminados (solo tenían valores por defecto; Firebase ya bundlea con package exports). Clave de Google Places ya en `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY`; pendiente: crearla en Google Cloud y definirla con `eas env:create`
 - [x] CI en GitHub Actions: `tsc`, jest y `expo-doctor` en cada PR (`.github/workflows/ci.yml`)
 
 ### Fase 2 — Upgrade de Expo (`expo-upgrader`)
-- [ ] Subir al SDK más reciente, un SDK por PR si hace falta, siguiendo los changelogs con el Expo MCP. Al terminar, quitar `continue-on-error` del paso Expo Doctor en `.github/workflows/ci.yml`
+- [x] Subir al SDK más reciente: SDK 58 (React Native 0.88, React 19.3, TypeScript 6, Reanimated 4 + worklets); `expo-doctor` vuelve a ser bloqueante en CI y la CI usa Node 22
 - [ ] Migrar a `expo-image`, `expo-notifications` (push real) y `expo-apple-authentication`
 - [ ] Development build con EAS en iOS y Android funcionando
 

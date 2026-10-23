@@ -6,7 +6,7 @@ import { auth, firestore, database } from '../../../firebase';
 import { Text, TouchableOpacity, View, Platform, StyleSheet } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { DrawerActions } from '@react-navigation/native';
+import { DrawerActions } from 'expo-router/react-navigation';
 import { RaiteProvider, useRaite } from '../../../context/RaiteContext'; 
 import { ref, onValue } from 'firebase/database';
 import { collection, query, where, onSnapshot, getCountFromServer } from 'firebase/firestore';
@@ -153,7 +153,7 @@ export default function TabLayout() {
           headerTitle: ForeignHeader,
           title: 'Feed',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" color={color} size={size} />
+            <Ionicons name="home" color={color as string} size={size} />
           ),
         }}
       />
@@ -164,7 +164,7 @@ export default function TabLayout() {
           headerTitle: ForeignHeader,
           title: 'Mapa',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="map" color={color} size={size} />
+            <Ionicons name="map" color={color as string} size={size} />
           ),
           tabBarBadge: hasUnreadRaiteRequests ? "!" : undefined,
           tabBarBadgeStyle: { backgroundColor: '#FF6B6B' }
@@ -181,7 +181,7 @@ export default function TabLayout() {
           tabBarIcon: isAnonymous
             ? () => null
             : ({ color, size }) => (
-                <Ionicons name="people" color={color} size={size} />
+                <Ionicons name="people" color={color as string} size={size} />
               ),
         }}
       />
@@ -195,7 +195,7 @@ export default function TabLayout() {
           tabBarIcon: isAnonymous
             ? () => null
             : ({ color, size }) => (
-                <Ionicons name="chatbubble" color={color} size={size} />
+                <Ionicons name="chatbubble" color={color as string} size={size} />
               ),
         }}
       />
@@ -206,7 +206,7 @@ export default function TabLayout() {
           headerTitle: ForeignHeader,
           title: 'Profile',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" color={color} size={size} />
+            <Ionicons name="person" color={color as string} size={size} />
           ),
         }}
       />
