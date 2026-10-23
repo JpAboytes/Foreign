@@ -58,6 +58,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [x] Esquema (migraciones `supabase/migrations/2026102000000{1,2,3}`, aplicadas en `zoidnphuqxuvocoelrfj`): `profiles`, `posts`, `post_likes`, `comments`, `forum_questions`, `forum_answers`, `map_locations`, `mentors`, `chat_sessions`, `messages`, `notifications`, `friendships`, `raites`, `reports`, `blocks`
 - [x] RLS en todas las tablas; rol admin vía tabla `user_roles` o custom claim (nunca un flag editable por el cliente)
 - [ ] Auth: email, Google y Apple; deep links con el scheme nuevo
+- [ ] Migrar dominios de la app a Supabase en la rama `supabase-migration` (ver CLAUDE.md): [ ] auth/perfiles (PR abierto) · [ ] posts/feed · [ ] foro · [ ] mapa · [ ] mentores/chat · [ ] amistades/notificaciones · [ ] admin/ajustes
 - [x] Storage: buckets `avatars` y `post-images` con políticas
 - [~] Realtime para chat y notificaciones; triggers que encolan push vía Edge Function (Realtime de `messages`/`notifications` activo desde la migración 3; `push_queue` + trigger en `20261021000005_realtime_push.sql` **pendiente de aplicar** en el proyecto; falta la Edge Function de envío)
 - [ ] Retirar Firebase y borrar los archivos `google-services.json` / `GoogleService-Info.plist`
