@@ -23,6 +23,7 @@ Plan maestro y estado: `docs/PRODUCTION_ROADMAP.md` (fuente de verdad; actualíz
 - Supabase: proyecto `Foreign`, ref **`zoidnphuqxuvocoelrfj`** (us-east-1), organización JpAboytes. Por ahora es el único entorno; las variables públicas están en `MyApp/.env.example`.
 - Expo/EAS: proyecto "foreign" en la cuenta de Expo (usa el Expo MCP y las skills de Expo para enlazarlo y consultar docs).
 - Rama base: `main`. Una rama `agents/<AAAA-MM-DD>-<tarea>` por tarea, con PR contra `main`.
+- **Excepción, migración Firebase → Supabase (Fase 3):** los PRs de cada dominio van contra la rama de integración `supabase-migration`, no contra `main`. Mover solo una parte deja al resto de la app sin sesión, así que `supabase-migration` entra a `main` en un solo PR cuando toda la app funciona con Supabase y Firebase ya se retiró. Orden de dominios: auth/perfiles → posts/feed → foro → mapa → mentores/chat → amistades/notificaciones → admin/ajustes → retirar Firebase.
 
 ## Reglas
 - Una rama y un PR por tarea del roadmap; un PR no mezcla upgrade de SDK, migración de backend y cambios de UI.

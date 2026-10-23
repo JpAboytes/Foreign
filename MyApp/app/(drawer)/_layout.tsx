@@ -6,11 +6,10 @@ import { useRouter, useNavigation } from "expo-router";
 import { DrawerActions } from "expo-router/react-navigation";
 import * as Haptics from 'expo-haptics';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Platform } from "react-native";
-import { doc, getDoc } from "firebase/firestore";
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth, firestore } from '../../firebase';
+import { useUser } from '../../context/UserContext';
+import { logout } from '../../services/auth';
 
 const CustomDrawerButton = () => {
   const navigation = useNavigation();
@@ -36,16 +35,9 @@ const customTitles: Record<string, string> = {
 };
 
 export default function DrawerLayout() {
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserId(user.uid);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+  const { user, userProfile } = useUser();
+  const userId = user?.id ?? null;
+  const isAdmin = !!userProfile?.isAdmin;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -60,7 +52,7 @@ export default function DrawerLayout() {
               </View>
             ),
           })}
-          drawerContent={() => <CustomDrawerContent userId={userId} />}
+          drawerContent={() => <CustomDrawerContent isAdmin={isAdmin} />}
         >
           {/* ... existing screens ... */}
           <Drawer.Screen
@@ -80,31 +72,14 @@ export default function DrawerLayout() {
   );
 }
 
-function CustomDrawerContent({ userId }: { userId: string }) {
+function CustomDrawerContent({ isAdmin }: { isAdmin: boolean }) {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const ref = doc(firestore, "users", userId);
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          const data = snap.data();
-          setIsAdmin(data.isAdmin === true);
-        }
-      } catch (error) {
-        console.error("Error al obtener el rol del usuario:", error);
-      }
-    };
-    fetchUserRole();
-  }, [userId]);
 
   const handleLogout = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      await signOut(auth);
+      await logout();
       router.replace("/login");
     } catch (error) {
       console.error("Error al cerrar sesión:", error);

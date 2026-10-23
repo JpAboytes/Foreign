@@ -1,11 +1,10 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, firestore } from '../firebase';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import { AuthUser, subscribeToAuthChanges } from '../services/auth';
+import { getUserProfile, UserProfile } from '../services/userService';
 
 type UserContextType = {
-  user: any;
-  userProfile: any;
+  user: AuthUser | null;
+  userProfile: UserProfile | null;
   loading: boolean;
   refreshProfile: () => Promise<void>;
 };
@@ -18,47 +17,43 @@ const UserContext = createContext<UserContextType>({
 });
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Función para recuperar datos del perfil
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = useCallback(async (authUser: AuthUser) => {
     try {
-      const userDocRef = doc(firestore, 'users', userId);
-      const userDoc = await getDoc(userDocRef);
-      
-      if (userDoc.exists()) {
-        setUserProfile(userDoc.data());
-      }
+      const profile = await getUserProfile(authUser.id);
+      setUserProfile(profile ? { ...profile, email: authUser.email ?? null } : null);
     } catch (error) {
       console.error("Error fetching user profile:", error);
     }
-  };
+  }, []);
 
   // Función para refrescar el perfil (útil después de actualizaciones)
-  const refreshProfile = async () => {
-    if (user?.uid) {
-      await fetchUserProfile(user.uid);
+  const refreshProfile = useCallback(async () => {
+    if (user) {
+      await fetchUserProfile(user);
     }
-  };
+  }, [user, fetchUserProfile]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+    const unsubscribe = subscribeToAuthChanges(async (authUser) => {
       setLoading(true);
       setUser(authUser);
-      
+
       if (authUser) {
-        await fetchUserProfile(authUser.uid);
+        await fetchUserProfile(authUser);
       } else {
         setUserProfile(null);
       }
-      
+
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [fetchUserProfile]);
 
   return (
     <UserContext.Provider value={{ user, userProfile, loading, refreshProfile }}>
