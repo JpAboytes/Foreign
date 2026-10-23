@@ -49,7 +49,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [x] CI en GitHub Actions: `tsc`, jest y `expo-doctor` en cada PR (`.github/workflows/ci.yml`)
 
 ### Fase 2 — Upgrade de Expo (`expo-upgrader`)
-- [ ] Subir al SDK más reciente, un SDK por PR si hace falta, siguiendo los changelogs con el Expo MCP
+- [ ] Subir al SDK más reciente, un SDK por PR si hace falta, siguiendo los changelogs con el Expo MCP. Al terminar, quitar `continue-on-error` del paso Expo Doctor en `.github/workflows/ci.yml`
 - [ ] Migrar a `expo-image`, `expo-notifications` (push real) y `expo-apple-authentication`
 - [ ] Development build con EAS en iOS y Android funcionando
 
