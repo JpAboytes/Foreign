@@ -65,7 +65,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 ### Fase 4 — Cumplimiento y calidad (`security-compliance` + `qa-engineer`)
 - [ ] Reportar y bloquear, cola de moderación en el panel admin, aceptación de términos en el registro
 - [ ] Borrado de cuenta completo (Edge Function que borra datos y Storage) + URL web de borrado
-- [ ] Política de privacidad y términos publicados, Privacy Manifest, textos de permisos
+- [ ] Política de privacidad y términos publicados (pendiente: URL pública) · [x] Privacy Manifest y textos de permisos (es-MX) en `app.config.js`
 - [ ] Partir `map.tsx` y `manageUsers.tsx`; estados de carga, error y vacío
 - [ ] Monitoreo de errores (Sentry) y analítica básica
 - [ ] E2E con Maestro de los flujos críticos: registro, login, post, foro, chat, borrar cuenta
