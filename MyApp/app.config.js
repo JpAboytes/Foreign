@@ -6,7 +6,8 @@ export default {
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "foreign",
+    // "mx.foreign.app" es el esquema al que regresa el login de Google (expo-auth-session usa <bundleId>:/oauthredirect).
+    scheme: ["foreign", "mx.foreign.app"],
     userInterfaceStyle: "automatic",
     owner: "foreign-project",
     splash: {
