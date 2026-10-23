@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { firestore } from './firebase/config';
 import { uploadProfileImage } from './imageService';
-import { UserProfile } from './userService';
+import { UserProfile, getUserProfile, createOrUpdateUserProfile } from './userService';
 
 // Interfaces
 export interface FollowStatus {
@@ -25,57 +25,25 @@ export interface FollowStatus {
 
 // Obtener perfil completo de usuario
 export const getUserProfileById = async (userId: string): Promise<UserProfile | null> => {
-  try {
-    const userDoc = await getDoc(doc(firestore, 'users', userId));
-    
-    if (userDoc.exists()) {
-      return { uid: userDoc.id, ...userDoc.data() } as UserProfile;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error obteniendo perfil de usuario:', error);
-    throw error;
-  }
+  return await getUserProfile(userId);
 };
 
 // Actualizar perfil de usuario
 export const updateUserProfile = async (
-  userId: string, 
+  userId: string,
   updates: Partial<UserProfile>
 ): Promise<void> => {
-  try {
-    const userRef = doc(firestore, 'users', userId);
-    
-    // Eliminar propiedades que no deben actualizarse
-    const { id, createdAt, ...validUpdates } = updates as any;
-    
-    await updateDoc(userRef, {
-      ...validUpdates,
-      updatedAt: serverTimestamp()
-    });
-  } catch (error) {
-    console.error('Error actualizando perfil de usuario:', error);
-    throw error;
-  }
+  await createOrUpdateUserProfile(userId, updates);
 };
 
 // Actualizar foto de perfil
 export const updateProfilePhoto = async (
-  userId: string, 
+  userId: string,
   imageUri: string
 ): Promise<string> => {
   try {
-    // Subir imagen
     const photoURL = await uploadProfileImage(imageUri, userId);
-    
-    // Actualizar perfil
-    const userRef = doc(firestore, 'users', userId);
-    await updateDoc(userRef, { 
-      photo: photoURL,
-      updatedAt: serverTimestamp()
-    });
-    
+    await createOrUpdateUserProfile(userId, { photo: photoURL });
     return photoURL;
   } catch (error) {
     console.error('Error actualizando foto de perfil:', error);

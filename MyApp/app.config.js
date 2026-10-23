@@ -16,6 +16,7 @@ export default {
     },
     ios: {
       bundleIdentifier: "mx.foreign.app",
+      usesAppleSignIn: true,
       supportsTablet: true,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -46,11 +47,6 @@ export default {
           },
         ],
       },
-      config: {
-        googleSignIn: {
-          reservedClientId: "com.googleusercontent.apps.497729458678-oovq36fgcgdm6ho6unb5rql4gg30cupn",
-        },
-      },
     },
     android: {
       package: "mx.foreign.app",
@@ -74,6 +70,7 @@ export default {
     plugins: [
       "expo-router",
       "expo-web-browser",
+      "expo-apple-authentication",
       [
         "expo-location",
         {
