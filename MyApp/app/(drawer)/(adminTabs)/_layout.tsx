@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import { TouchableOpacity, Platform } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useNavigation, DrawerActions } from "@react-navigation/native";
+import { useNavigation, DrawerActions } from "expo-router/react-navigation";
 import * as Haptics from "expo-haptics";
 
 export default function StackHome() {

@@ -1,4 +1,3 @@
-import 'dotenv/config';
 
 export default {
   expo: {
@@ -9,7 +8,6 @@ export default {
     icon: "./assets/images/icon.png",
     scheme: "foreign",
     userInterfaceStyle: "automatic",
-    newArchEnabled: true,
     owner: "foreign-project",
     splash: {
       image: "./assets/images/splash-icon.png",
