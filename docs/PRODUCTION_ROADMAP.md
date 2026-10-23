@@ -45,7 +45,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [ ] Enlazar `owner`/`projectId`/`updates.url` del proyecto Expo "foreign"
 - [x] Eliminar el chatbot (`app/extra/chatbot.tsx`, `services/chatbotService.ts`, `hooks/useChatbot.ts`, componentes y entradas de navegación)
 - [~] Errores de `tsc` corregidos (18 → 0); `expo-doctor`: metro resuelto, quedan 3 checks que requieren red a Expo
-- [~] Override de `metro.config.js` quitado (`unstable_enableSymlinks`; se mantiene `unstable_enablePackageExports=false` por Firebase hasta la Fase 3). Pendiente: pasar los secretos a `EXPO_PUBLIC_*` / secretos de EAS
+- [~] Override de `metro.config.js` quitado (`unstable_enableSymlinks`; se mantiene `unstable_enablePackageExports=false` por Firebase hasta la Fase 3). Clave de Google Places ya en `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY`; pendiente: crearla en Google Cloud y definirla con `eas env:create`
 - [x] CI en GitHub Actions: `tsc`, jest y `expo-doctor` en cada PR (`.github/workflows/ci.yml`)
 
 ### Fase 2 — Upgrade de Expo (`expo-upgrader`)
@@ -59,7 +59,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [x] RLS en todas las tablas; rol admin vía tabla `user_roles` o custom claim (nunca un flag editable por el cliente)
 - [ ] Auth: email, Google y Apple; deep links con el scheme nuevo
 - [x] Storage: buckets `avatars` y `post-images` con políticas
-- [ ] Realtime para chat y notificaciones; triggers que encolan push vía Edge Function
+- [~] Realtime para chat y notificaciones; triggers que encolan push vía Edge Function (Realtime de `messages`/`notifications` activo desde la migración 3; `push_queue` + trigger en `20261021000005_realtime_push.sql` **pendiente de aplicar** en el proyecto; falta la Edge Function de envío)
 - [ ] Retirar Firebase y borrar los archivos `google-services.json` / `GoogleService-Info.plist`
 
 ### Fase 4 — Cumplimiento y calidad (`security-compliance` + `qa-engineer`)
