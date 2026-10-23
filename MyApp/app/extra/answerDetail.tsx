@@ -1,35 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { doc, getDoc, collection, addDoc, onSnapshot, query, orderBy, Timestamp, updateDoc, increment } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { firestore } from '../../firebase';
 import { useUser } from '../../context/UserContext';
-import { createNotification } from '../../services/notificationService';
-
-interface ForumUser {
-  id: string;
-  name: string;
-  photo: string;
-}
-
-interface ForumAnswer {
-  id: string;
-  content: string;
-  timestamp: any;
-  user: ForumUser;
-  userId: string; // Agregar esta propiedad
-  likes: number;
-}
-
-interface ForumComment {
-  id: string;
-  content: string;
-  timestamp: any;
-  user: ForumUser;
-  likes: number;
-}
+import { ForumAnswer, ForumComment, addAnswerComment, getAnswer, getAnswerComments, toggleAnswerLike } from '../../services/forumService';
+import { formatTimeAgo } from '../../utils/formatters';
 
 export default function AnswerDetailScreen() {
   const router = useRouter();
@@ -41,147 +16,64 @@ export default function AnswerDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [answerLoading, setAnswerLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const auth = getAuth();
-  const user = auth.currentUser;
-  const { userProfile } = useUser();
+  const { user } = useUser();
+
+  const loadComments = useCallback(async () => {
+    if (!answerId) return;
+    try {
+      setComments(await getAnswerComments(answerId as string));
+    } catch (error) {
+      console.error('Error al obtener comentarios:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [answerId]);
 
   // Cargar la respuesta
   useEffect(() => {
-    if (!questionId || !answerId) return;
-    
-    const fetchAnswer = async () => {
-      try {
-        setAnswerLoading(true);
-        const answerDoc = await getDoc(
-          doc(firestore, 'forumQuestions', questionId as string, 'answers', answerId as string)
-        );
-        
-        if (answerDoc.exists()) {
-          setAnswer({ id: answerDoc.id, ...answerDoc.data() } as ForumAnswer);
-        }
-      } catch (error) {
-        console.error('Error al obtener respuesta:', error);
-      } finally {
-        setAnswerLoading(false);
-      }
-    };
-    
-    fetchAnswer();
-  }, [questionId, answerId]);
-  
+    if (!answerId) return;
+
+    setAnswerLoading(true);
+    getAnswer(answerId as string, user?.id)
+      .then((loaded) => {
+        setAnswer(loaded);
+        setIsLiked(!!loaded?.likedByMe);
+      })
+      .catch((error) => console.error('Error al obtener respuesta:', error))
+      .finally(() => setAnswerLoading(false));
+  }, [answerId, user?.id]);
+
   // Cargar los comentarios
   useEffect(() => {
-    if (!questionId || !answerId) return;
-    
-    const q = query(
-      collection(firestore, 'forumQuestions', questionId as string, 'answers', answerId as string, 'comments'),
-      orderBy('timestamp', 'desc')
-    );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const loadedComments = snapshot.docs.map(doc => 
-        ({ id: doc.id, ...doc.data() }) as ForumComment
-      );
-      setComments(loadedComments);
-      setLoading(false);
-      setRefreshing(false);
-    });
-    
-    return () => unsubscribe();
-  }, [questionId, answerId]);
+    loadComments();
+  }, [loadComments]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    // Las recargas se manejan con el onSnapshot
+    loadComments();
   };
 
+  // La notificación al autor de la respuesta la crea un trigger en la base de datos.
   const addComment = async () => {
-    if (!newComment.trim() || !user || !answer) return; // Añadir verificación de answer
-    
-    try {
-      const comment = {
-        content: newComment.trim(),
-        timestamp: Timestamp.now(),
-        user: {
-          id: user.uid,
-          name: userProfile?.name || user?.displayName || 'Usuario sin nombre',
-          photo: userProfile?.photo || '',
-        },
-        likes: 0
-      };
-      
-      // Añadir el comentario
-      await addDoc(
-        collection(firestore, 'forumQuestions', 
-          questionId as string, 'answers', answerId as string, 'comments'),
-        comment
-      );
-      
-      // Incrementar el contador de comentarios
-      await updateDoc(
-        doc(firestore, 'forumQuestions', questionId as string, 'answers', answerId as string),
-        { commentCount: increment(1) }
-      );
-      
-      setNewComment('');
+    if (!newComment.trim() || !user || !answer) return;
 
-      // Verificación segura
-      if (answer && user && answer.userId && user.uid) {
-        console.log("Datos de notificación respuesta:", {
-          fromUserId: user.uid,
-          toUserId: answer.userId,
-        });
-        
-        try {
-          await createNotification({
-            type: 'forum_answer_comment',
-            fromUserId: String(user.uid),
-            fromUserName: userProfile?.name || user?.displayName || 'Usuario',
-            fromUserPhoto: userProfile?.photo || '',
-            toUserId: String(answer.userId),
-            contentId: String(answerId),
-            contentText: newComment.trim().substring(0, 100),
-            relatedContentId: String(questionId)
-          });
-        } catch (err) {
-          console.error("Error al crear notificación:", err);
-        }
-      }
+    try {
+      await addAnswerComment(answer.id, newComment, user.id);
+      setNewComment('');
+      await loadComments();
     } catch (error) {
       console.error("Error al añadir comentario:", error);
     }
   };
 
   const toggleLike = async () => {
-    if (!user || !questionId || !answerId || !answer) return;
-    
+    if (!user || !answer) return;
+
     try {
-      // Tu código existente para actualizar el like...
-      
-      // Primero recupera explícitamente todos los datos de la respuesta
-      // para asegurar que tenemos toda la información
-      const answerRef = doc(firestore, 'forumQuestions', questionId as string, 'answers', answerId as string);
-      const answerSnap = await getDoc(answerRef);
-      
-      if (answerSnap.exists() && answerSnap.data().user && answerSnap.data().user.id) {
-        const answerUserId = answerSnap.data().user.id;
-        
-        // Asegurar que tenemos un ID válido antes de crear la notificación
-        if (answerUserId !== user.uid) {
-          await createNotification({
-            type: 'forum_answer_like',
-            fromUserId: user.uid,
-            fromUserName: userProfile?.name || user?.displayName || 'Usuario',
-            fromUserPhoto: userProfile?.photo || '',
-            toUserId: answerUserId, // Usar el ID recuperado explícitamente
-            contentId: String(answerId),
-            contentText: answer.content?.substring(0, 100) || '',
-            relatedContentId: String(questionId)
-          });
-        }
-      } else {
-        console.error("No se encontró userId en la respuesta");
-      }
+      await toggleAnswerLike(answer.id, user.id, isLiked);
+      setAnswer({ ...answer, likes: answer.likes + (isLiked ? -1 : 1) });
+      setIsLiked(!isLiked);
     } catch (error) {
       console.error("Error al dar like a la respuesta:", error);
     }
@@ -202,9 +94,7 @@ export default function AnswerDetailScreen() {
           <View>
             <Text style={styles.userName}>{item.user.name}</Text>
             <Text style={styles.timestamp}>
-              {item.timestamp?.toDate ? 
-                new Date(item.timestamp.toDate()).toLocaleString() : 
-                'Ahora'}
+              {formatTimeAgo(item.timestamp)}
             </Text>
           </View>
         </View>
@@ -248,9 +138,7 @@ export default function AnswerDetailScreen() {
           <View>
             <Text style={styles.userName}>{answer.user.name}</Text>
             <Text style={styles.timestamp}>
-              {answer.timestamp?.toDate ? 
-                new Date(answer.timestamp.toDate()).toLocaleString() : 
-                'Hace un momento'}
+              {formatTimeAgo(answer.timestamp)}
             </Text>
           </View>
         </View>

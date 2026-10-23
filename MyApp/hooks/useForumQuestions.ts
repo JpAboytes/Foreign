@@ -1,27 +1,33 @@
-import { useState, useEffect } from 'react';
-import { getQuestions, createQuestion, ForumQuestion, ForumUser } from '../services/forumService';
+import { useState, useEffect, useCallback } from 'react';
+import { getQuestions, createQuestion, ForumQuestion } from '../services/forumService';
 
 export function useForumQuestions() {
   const [questions, setQuestions] = useState<ForumQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    setLoading(true);
-    const unsubscribe = getQuestions((loadedQuestions) => {
-      setQuestions(loadedQuestions);
+  const loadQuestions = useCallback(async () => {
+    try {
+      setQuestions(await getQuestions());
+    } catch (error) {
+      console.error('Error al cargar preguntas:', error);
+    } finally {
       setLoading(false);
       setRefreshing(false);
-    });
-    
-    return () => unsubscribe();
+    }
   }, []);
 
-  const addQuestion = async (questionText: string, user: ForumUser) => {
-    if (!questionText.trim() || !user) return null;
-    
+  useEffect(() => {
+    loadQuestions();
+  }, [loadQuestions]);
+
+  const addQuestion = async (questionText: string, userId: string) => {
+    if (!questionText.trim() || !userId) return null;
+
     try {
-      return await createQuestion(questionText, user);
+      const id = await createQuestion(questionText, userId);
+      await loadQuestions();
+      return id;
     } catch (error) {
       console.error('Error al crear pregunta:', error);
       return null;
@@ -30,7 +36,7 @@ export function useForumQuestions() {
 
   const refreshQuestions = () => {
     setRefreshing(true);
-    // La recarga real se maneja en el efecto con onSnapshot
+    loadQuestions();
   };
 
   return {

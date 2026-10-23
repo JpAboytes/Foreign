@@ -1,5 +1,4 @@
-import { collection, addDoc, query, orderBy, onSnapshot, Timestamp, getDocs, doc, getDoc, updateDoc, increment, where } from 'firebase/firestore';
-import { firestore } from '../firebase';
+import { supabase } from './supabase/client';
 
 export interface ForumUser {
   id: string;
@@ -17,10 +16,13 @@ export interface ForumQuestion {
 
 export interface ForumAnswer {
   id: string;
+  questionId: string;
+  userId: string;
   content: string;
   timestamp: any;
   user: ForumUser;
   likes: number;
+  likedByMe: boolean;
   commentCount: number;
 }
 
@@ -32,102 +34,158 @@ export interface ForumComment {
   likes: number;
 }
 
-// Obtener preguntas con conteo de respuestas
-export const getQuestions = (callback: (questions: ForumQuestion[]) => void) => {
-  const q = query(collection(firestore, 'forumQuestions'), orderBy('timestamp', 'desc'));
-  
-  return onSnapshot(q, async (snapshot) => {
-    const questionsPromises = snapshot.docs.map(async (doc) => {
-      const questionData = { id: doc.id, ...doc.data() } as ForumQuestion;
-      
-      // Obtener conteo de respuestas
-      const answersQuery = collection(firestore, 'forumQuestions', doc.id, 'answers');
-      const answersSnapshot = await getDocs(answersQuery);
-      questionData.answerCount = answersSnapshot.size;
-      
-      return questionData;
-    });
-    
-    const questions = await Promise.all(questionsPromises);
-    callback(questions);
-  });
+type AuthorRow = { id: string; name: string; photo_url: string | null };
+
+const toForumUser = (author: AuthorRow): ForumUser => ({
+  id: author.id,
+  name: author.name || 'Usuario sin nombre',
+  photo: author.photo_url ?? '',
+});
+
+const QUESTION_SELECT =
+  'id, title, created_at, author:profiles!forum_questions_user_id_fkey!inner(id, name, photo_url), forum_answers(count)';
+
+type QuestionRow = {
+  id: string;
+  title: string;
+  created_at: string;
+  author: AuthorRow;
+  forum_answers: { count: number }[];
+};
+
+const toQuestion = (row: QuestionRow): ForumQuestion => ({
+  id: row.id,
+  title: row.title,
+  timestamp: row.created_at,
+  user: toForumUser(row.author),
+  answerCount: row.forum_answers[0]?.count ?? 0,
+});
+
+const ANSWER_SELECT =
+  'id, question_id, user_id, content, created_at, author:profiles!forum_answers_user_id_fkey!inner(id, name, photo_url), forum_answer_likes(user_id), forum_answer_comments(count)';
+
+type AnswerRow = {
+  id: string;
+  question_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  author: AuthorRow;
+  forum_answer_likes: { user_id: string }[];
+  forum_answer_comments: { count: number }[];
+};
+
+const toAnswer = (row: AnswerRow, currentUserId?: string): ForumAnswer => ({
+  id: row.id,
+  questionId: row.question_id,
+  userId: row.user_id,
+  content: row.content,
+  timestamp: row.created_at,
+  user: toForumUser(row.author),
+  likes: row.forum_answer_likes.length,
+  likedByMe: !!currentUserId && row.forum_answer_likes.some((like) => like.user_id === currentUserId),
+  commentCount: row.forum_answer_comments[0]?.count ?? 0,
+});
+
+// Preguntas más recientes con su conteo de respuestas
+export const getQuestions = async (): Promise<ForumQuestion[]> => {
+  const { data, error } = await supabase
+    .from('forum_questions')
+    .select(QUESTION_SELECT)
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return (data as unknown as QuestionRow[]).map(toQuestion);
 };
 
 // Crear una nueva pregunta
-export const createQuestion = async (questionText: string, user: ForumUser) => {
-  const newQuestion = {
-    title: questionText.trim(),
-    timestamp: Timestamp.now(),
-    user,
-    answerCount: 0,
-  };
-  
-  return await addDoc(collection(firestore, 'forumQuestions'), newQuestion);
+export const createQuestion = async (questionText: string, userId: string): Promise<string> => {
+  const { data, error } = await supabase
+    .from('forum_questions')
+    .insert({ title: questionText.trim(), user_id: userId })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
 };
 
 // Obtener detalle de pregunta
-export const getQuestionDetail = async (questionId: string) => {
-  const questionDoc = await getDoc(doc(firestore, 'forumQuestions', questionId));
-  if (questionDoc.exists()) {
-    return { id: questionDoc.id, ...questionDoc.data() } as ForumQuestion;
-  }
-  return null;
+export const getQuestionDetail = async (questionId: string): Promise<ForumQuestion | null> => {
+  const { data, error } = await supabase
+    .from('forum_questions')
+    .select(QUESTION_SELECT)
+    .eq('id', questionId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? toQuestion(data as unknown as QuestionRow) : null;
 };
 
-// Obtener respuestas de una pregunta
-export const getAnswers = (questionId: string, callback: (answers: ForumAnswer[]) => void) => {
-  const q = query(
-    collection(firestore, 'forumQuestions', questionId, 'answers'),
-    orderBy('timestamp', 'desc')
-  );
-  
-  return onSnapshot(q, async (snapshot) => {
-    const answersPromises = snapshot.docs.map(async (doc) => {
-      const answerData = { id: doc.id, ...doc.data() } as ForumAnswer;
-      
-      try {
-        const commentsCollection = collection(
-          firestore, 'forumQuestions', questionId, 'answers', doc.id, 'comments'
-        );
-        const commentsSnapshot = await getDocs(commentsCollection);
-        answerData.commentCount = commentsSnapshot.size;
-      } catch (e) {
-        answerData.commentCount = 0;
-      }
-      
-      return answerData;
-    });
-    
-    const answers = await Promise.all(answersPromises);
-    callback(answers);
-  });
+// Respuestas de una pregunta (más recientes primero)
+export const getAnswers = async (questionId: string, currentUserId?: string): Promise<ForumAnswer[]> => {
+  const { data, error } = await supabase
+    .from('forum_answers')
+    .select(ANSWER_SELECT)
+    .eq('question_id', questionId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data as unknown as AnswerRow[]).map((row) => toAnswer(row, currentUserId));
 };
 
-// Crear una respuesta
-export const createAnswer = async (
-  questionId: string, 
-  answerText: string, 
-  user: ForumUser
-) => {
-  const answer = {
-    content: answerText.trim(),
-    timestamp: Timestamp.now(),
-    user,
-    likes: 0,
-    commentCount: 0,
-  };
-  
-  const answerRef = await addDoc(
-    collection(firestore, 'forumQuestions', questionId, 'answers'), 
-    answer
-  );
-  
-  // Incrementar contador de respuestas
-  await updateDoc(doc(firestore, 'forumQuestions', questionId), {
-    answerCount: increment(1)
-  });
-  
-  return answerRef;
+// Una respuesta
+export const getAnswer = async (answerId: string, currentUserId?: string): Promise<ForumAnswer | null> => {
+  const { data, error } = await supabase
+    .from('forum_answers')
+    .select(ANSWER_SELECT)
+    .eq('id', answerId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? toAnswer(data as unknown as AnswerRow, currentUserId) : null;
 };
 
-// Más funciones (comentarios, likes, etc.)
+// Crear una respuesta. La notificación al autor de la pregunta la crea un trigger.
+export const createAnswer = async (questionId: string, answerText: string, userId: string): Promise<string> => {
+  const { data, error } = await supabase
+    .from('forum_answers')
+    .insert({ question_id: questionId, content: answerText.trim(), user_id: userId })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+};
+
+// Dar o quitar like a una respuesta. La notificación la crea un trigger.
+export const toggleAnswerLike = async (answerId: string, userId: string, isLiked: boolean): Promise<void> => {
+  const { error } = isLiked
+    ? await supabase.from('forum_answer_likes').delete().eq('answer_id', answerId).eq('user_id', userId)
+    : await supabase.from('forum_answer_likes').insert({ answer_id: answerId, user_id: userId });
+  if (error) throw error;
+};
+
+// Comentarios de una respuesta (más recientes primero)
+export const getAnswerComments = async (answerId: string): Promise<ForumComment[]> => {
+  const { data, error } = await supabase
+    .from('forum_answer_comments')
+    .select('id, content, created_at, author:profiles!forum_answer_comments_user_id_fkey!inner(id, name, photo_url)')
+    .eq('answer_id', answerId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data as unknown as (Omit<ForumComment, 'user' | 'timestamp' | 'likes'> & { created_at: string; author: AuthorRow })[])
+    .map((row) => ({
+      id: row.id,
+      content: row.content,
+      timestamp: row.created_at,
+      user: toForumUser(row.author),
+      likes: 0,
+    }));
+};
+
+// Comentar una respuesta. La notificación al autor de la respuesta la crea un trigger.
+export const addAnswerComment = async (answerId: string, content: string, userId: string): Promise<string> => {
+  const { data, error } = await supabase
+    .from('forum_answer_comments')
+    .insert({ answer_id: answerId, content: content.trim(), user_id: userId })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+};
