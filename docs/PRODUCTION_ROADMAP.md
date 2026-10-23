@@ -55,8 +55,8 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 
 ### Fase 3 — Supabase (`supabase-architect` + `app-migrator`)
 - [x] Proyecto creado: `Foreign` (`zoidnphuqxuvocoelrfj`, us-east-1), vacío
-- [ ] Esquema: `profiles`, `posts`, `post_likes`, `comments`, `forum_questions`, `forum_answers`, `map_locations`, `mentors`, `chat_sessions`, `messages`, `notifications`, `friendships`, `raites`, `reports`, `blocks`
-- [ ] RLS en todas las tablas; rol admin vía tabla `user_roles` o custom claim (nunca un flag editable por el cliente)
+- [x] Esquema (migraciones `supabase/migrations/2026102000000{1,2,3}`, aplicadas en `zoidnphuqxuvocoelrfj`): `profiles`, `posts`, `post_likes`, `comments`, `forum_questions`, `forum_answers`, `map_locations`, `mentors`, `chat_sessions`, `messages`, `notifications`, `friendships`, `raites`, `reports`, `blocks`
+- [x] RLS en todas las tablas; rol admin vía tabla `user_roles` o custom claim (nunca un flag editable por el cliente)
 - [ ] Auth: email, Google y Apple; deep links con el scheme nuevo
 - [ ] Storage: buckets `avatars` y `post-images` con políticas
 - [ ] Realtime para chat y notificaciones; triggers que encolan push vía Edge Function
