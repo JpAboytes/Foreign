@@ -1,14 +1,16 @@
 import { useState, useCallback, useEffect } from 'react';
-import { 
-  getPostsWithUserData, 
-  getPostsByUniversity, 
+import {
+  getPostsByUniversity,
   getPostsByFriends,
   togglePostLike,
   deletePost
 } from '../services/postService';
+import { getFriendIds } from '../services/profileService';
 import { Post } from '../services/postService';
+import { UserProfile } from '../services/userService';
 
-export function usePosts(currentUser: any) {
+// currentUser es siempre el usuario de la sesión (no el perfil que se está viendo).
+export function usePosts(currentUser: UserProfile | null) {
   const [universityPosts, setUniversityPosts] = useState<Post[]>([]);
   const [friendPosts, setFriendPosts] = useState<Post[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -22,77 +24,53 @@ export function usePosts(currentUser: any) {
     }
   }, [selectedPost, currentUser]);
 
-  // Cargar publicaciones
+  // Cargar publicaciones de la universidad y de los amigos
   const fetchPosts = useCallback(async () => {
-    if (!currentUser) return;
+    if (!currentUser?.uid) return;
 
     try {
-      // Obtener todas las publicaciones con datos de usuario
-      const allPosts = await getPostsWithUserData();
-      
-      // Filtrar por universidad
-      const myUniversity = currentUser.university;
-      if (myUniversity) {
-        const filtered = allPosts.filter(post => 
-          post.user?.university === myUniversity
-        );
-        setUniversityPosts(filtered);
-      }
-      
-      // Filtrar por amigos
-      const friendIds = currentUser.friends || [];
-      if (friendIds.length) {
-        const filtered = allPosts.filter(post => 
-          friendIds.includes(post.userId)
-        );
-        setFriendPosts(filtered);
-      }
+      const [byUniversity, friendIds] = await Promise.all([
+        currentUser.university ? getPostsByUniversity(currentUser.university) : Promise.resolve([]),
+        getFriendIds(currentUser.uid),
+      ]);
+      setUniversityPosts(byUniversity);
+      setFriendPosts(await getPostsByFriends(friendIds));
     } catch (error) {
       console.error('Error fetching posts:', error);
     }
-  }, [currentUser]);
+  }, [currentUser?.uid, currentUser?.university]);
 
   // Refrescar publicaciones
   const refreshPosts = async () => {
     setRefreshing(true);
     await fetchPosts();
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    setRefreshing(false);
   };
 
   // Manejar like
   const handleToggleLike = async () => {
     if (!selectedPost || !currentUser?.uid) return;
+    const userId = currentUser.uid;
 
     try {
-      await togglePostLike(
-        selectedPost.id, 
-        currentUser.uid, 
-        isLiked,
-        selectedPost.userId,
-        currentUser
-      );
-      
+      await togglePostLike(selectedPost.id, userId, isLiked);
+
       // Actualizar UI localmente
       setIsLiked(!isLiked);
-      
-      // Actualizar conteo de likes en UI
       setSelectedPost(prev => {
         if (!prev) return prev;
-        
+
         const updatedLikes = { ...prev.likes };
-        
         if (isLiked) {
-          delete updatedLikes[currentUser.uid];
+          delete updatedLikes[userId];
         } else {
-          updatedLikes[currentUser.uid] = true;
+          updatedLikes[userId] = true;
         }
-        
-        return { 
-          ...prev, 
-          likes: updatedLikes, 
-          likeCount: Object.keys(updatedLikes).length 
+
+        return {
+          ...prev,
+          likes: updatedLikes,
+          likeCount: Object.keys(updatedLikes).length
         };
       });
     } catch (error) {

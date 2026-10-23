@@ -11,7 +11,7 @@ import {
   Platform
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { getAuth } from 'firebase/auth';
+import { useUser } from '../../../context/UserContext';
 import * as ImagePicker from 'expo-image-picker';
 import MaxWidthContainer from '../../../components/MaxWidthContainer';
 import ProfileHeader from '../../../components/profile/ProfileHeader';
@@ -27,8 +27,9 @@ import { Post } from '../../../services/postService';
 export default function ProfileScreen() {
   const { uid } = useLocalSearchParams();
   const router = useRouter();
-  const auth = getAuth();
-  const currentUserId = auth.currentUser?.uid || null;
+  // El usuario de la sesión: likes y comentarios se hacen a su nombre, no al del perfil que se ve.
+  const { user, userProfile: currentUserProfile } = useUser();
+  const currentUserId = user?.id ?? null;
   
   // Si no hay uid en params, usar el currentUserId
   const targetUserId = uid ? String(uid) : currentUserId || '';
@@ -58,7 +59,7 @@ export default function ProfileScreen() {
     setSelectedPost,
     handleToggleLike,
     handleDeletePost
-  } = usePosts(profile);
+  } = usePosts(currentUserProfile);
   
   // Usar el hook useComments existente
   const {
@@ -67,7 +68,7 @@ export default function ProfileScreen() {
     loading: loadingComments,
     setNewComment,
     handleAddComment
-  } = useComments(selectedPost?.id || null, profile);
+  } = useComments(selectedPost?.id || null, currentUserProfile);
 
   const handleSelectProfilePhoto = async () => {
     if (!isOwnProfile) return;

@@ -15,6 +15,8 @@ import {
 import { firestore } from './firebase/config';
 import { uploadProfileImage } from './imageService';
 import { UserProfile, getUserProfile, createOrUpdateUserProfile } from './userService';
+import { Post, getPostsByUser } from './postService';
+import { supabase } from './supabase/client';
 
 // Interfaces
 export interface FollowStatus {
@@ -52,23 +54,22 @@ export const updateProfilePhoto = async (
 };
 
 // Obtener publicaciones del usuario
-export const getUserPosts = async (userId: string): Promise<any[]> => {
-  try {
-    const postsQuery = query(
-      collection(firestore, 'feedPosts'),
-      where('userId', '==', userId)
-    );
-    
-    const postsSnapshot = await getDocs(postsQuery);
-    
-    return postsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    console.error('Error obteniendo publicaciones del usuario:', error);
+export const getUserPosts = async (userId: string): Promise<Post[]> => {
+  return await getPostsByUser(userId);
+};
+
+// IDs de los amigos (solicitudes aceptadas en cualquier dirección)
+export const getFriendIds = async (userId: string): Promise<string[]> => {
+  const { data, error } = await supabase
+    .from('friendships')
+    .select('requester_id, addressee_id')
+    .eq('status', 'accepted')
+    .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+  if (error) {
+    console.error('Error obteniendo amigos:', error);
     throw error;
   }
+  return data.map((f) => (f.requester_id === userId ? f.addressee_id : f.requester_id));
 };
 
 // Verificar estado de amistad
