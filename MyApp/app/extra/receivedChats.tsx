@@ -6,16 +6,16 @@ import {
   ActivityIndicator, 
   Text 
 } from 'react-native';
-import { getAuth } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import { useChats } from '../../hooks/useChats';
+import { useAuth } from '../../hooks/useAuth';
 import ChatSessionCard from '../../components/mentor/ChatSessionCard';
 import { ChatSession } from '../../services/mentorService';
 
 export default function ReceivedChatsScreen() {
   const router = useRouter();
-  const auth = getAuth();
-  const userId = auth.currentUser?.uid || '';
+  const [{ user }] = useAuth();
+  const userId = user?.id ?? '';
   
   const { 
     chatSessions, 
