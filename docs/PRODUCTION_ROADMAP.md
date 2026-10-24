@@ -60,7 +60,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [ ] Auth: email, Google y Apple; deep links con el scheme nuevo
 - [ ] Migrar dominios de la app a Supabase en la rama `supabase-migration` (ver CLAUDE.md): [ ] auth/perfiles (PR abierto) · [ ] posts/feed · [ ] foro · [ ] mapa · [ ] mentores/chat · [ ] amistades/notificaciones · [ ] admin/ajustes
 - [x] Storage: buckets `avatars` y `post-images` con políticas
-- [~] Realtime para chat y notificaciones; triggers que encolan push vía Edge Function (Realtime de `messages`/`notifications` activo desde la migración 3; `push_queue` + trigger en `20261021000005_realtime_push.sql` **pendiente de aplicar** en el proyecto; falta la Edge Function de envío)
+- [x] Realtime para chat y notificaciones; trigger que encola push en `push_queue` (migración `20261021000005` aplicada en `zoidnphuqxuvocoelrfj`) y Edge Function `send-push` desplegada (`supabase/functions/send-push`). Pendiente: programar su invocación (pg_cron / Database Webhook) y registrar `push_tokens` desde la app (`expo-notifications`)
 - [ ] Retirar Firebase y borrar los archivos `google-services.json` / `GoogleService-Info.plist`
 
 ### Fase 4 — Cumplimiento y calidad (`security-compliance` + `qa-engineer`)
