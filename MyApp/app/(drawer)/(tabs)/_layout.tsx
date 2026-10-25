@@ -1,24 +1,21 @@
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, firestore, database } from '../../../firebase';
+import { subscribeToAuthChanges } from '../../../services/auth';
 import { Text, TouchableOpacity, View, Platform, StyleSheet } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { DrawerActions } from 'expo-router/react-navigation';
 import { RaiteProvider, useRaite } from '../../../context/RaiteContext'; 
-import { ref, onValue } from 'firebase/database';
-import { collection, query, where, onSnapshot, getCountFromServer } from 'firebase/firestore';
 import { useNotifications } from '../../../context/NotificationContext';
 
 export default function TabLayout() {
   const [isAnonymous, setIsAnonymous] = useState<boolean | null>(null);
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const navigation = useNavigation();
   const router = useRouter();
   const { hasActiveRaiteRequest } = useRaite();
-  const { notifications } = useNotifications();
+  // hasUnread cubre notificaciones y mensajes de chat sin leer (Realtime en NotificationContext)
+  const { notifications, hasUnread: hasUnreadNotifications } = useNotifications();
   
   // Verificar si hay solicitudes de raite no leídas
   const hasUnreadRaiteRequests = notifications.some(
@@ -30,62 +27,10 @@ export default function TabLayout() {
     navigation.dispatch(DrawerActions.openDrawer());
   };
 
-  // Comprobar mensajes no leídos y otras notificaciones
   useEffect(() => {
-    const currentUser = auth.currentUser;
-    if (!currentUser || currentUser.isAnonymous) return;
-
-    // Listener para mensajes no leídos
-    const messagesRef = ref(database, 'messages');
-    const unsubscribeMessages = onValue(messagesRef, async (snapshot) => {
-      if (!snapshot.exists()) {
-        setHasUnreadNotifications(false);
-        return;
-      }
-      
-      let hasUnread = false;
-      const allChats = snapshot.val();
-      const chatIds = Object.keys(allChats).filter(id => id.includes(currentUser.uid));
-      
-      for (const chatId of chatIds) {
-        const chatMessages = allChats[chatId];
-        if (!chatMessages) continue;
-        
-        const messagesArray = Object.values(chatMessages);
-        const hasUnreadMessages = messagesArray.some((msg: any) => 
-          msg.from !== currentUser.uid && !msg.read
-        );
-        
-        if (hasUnreadMessages) {
-          hasUnread = true;
-          break;
-        }
-      }
-      
-      // Verificar también notificaciones de Firestore
-      const notifQuery = query(
-        collection(firestore, 'notifications'),
-        where('toUserId', '==', currentUser.uid),
-        where('read', '==', false)
-      );
-      
-      // Usar la consulta correcta para contar solo notificaciones no leídas
-      const notifSnapshot = await getCountFromServer(notifQuery);
-      const hasFirestoreNotifications = notifSnapshot.data().count > 0;
-      
-      // Solo mostrar el indicador si hay al menos una notificación
-      setHasUnreadNotifications(hasUnread || hasFirestoreNotifications);
-    });
-    
-    return () => {
-      unsubscribeMessages();
-    };
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = subscribeToAuthChanges((user) => {
       if (user) {
-        setIsAnonymous(user.isAnonymous);
+        setIsAnonymous(!!user.is_anonymous);
       }
     });
     return () => unsubscribe();
