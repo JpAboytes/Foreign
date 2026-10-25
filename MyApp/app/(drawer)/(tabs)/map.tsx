@@ -16,12 +16,11 @@ import {
   Dimensions
 } from 'react-native';
 import * as Location from 'expo-location';
-import { firestore } from '../../../firebase';
-import { getAuth } from 'firebase/auth';
-import { doc, getDoc, collection, getDocs, setDoc, query, where, serverTimestamp, GeoPoint } from 'firebase/firestore';
+import { getCurrentUser } from '../../../services/auth';
+import { getUserProfile } from '../../../services/userService';
+import { getFriendIds } from '../../../services/profileService';
+import { createLocation, getAllLocations } from '../../../services/mapService';
 import { createNotification } from '../../../services/notificationService';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../../../firebase';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
 import { database } from '../../../firebase'; 
@@ -274,10 +273,9 @@ export default function MapScreen() {
           const raiteData = snapshot.val();
           if (raiteData && raiteData.status === 'pending') {
             // Obtener datos del usuario solicitante
-            getDoc(doc(firestore, 'users', fromUserId)).then(userDoc => {
-              if (userDoc.exists()) {
-                const userData = userDoc.data();
-                const userName = userData?.name || 'Usuario';
+            getUserProfile(fromUserId).then(userData => {
+              if (userData) {
+                const userName = userData.name || 'Usuario';
                 
                 // Mostrar modal con la solicitud
                 setSelectedFriendRaite({
@@ -294,26 +292,10 @@ export default function MapScreen() {
     }
   }, [params]); // Nota que la dependencia cambia de router.params a params
 
-  //Subir imgs a storage
-  const uploadImages = async (uris: string[]) => {
-    const urls = [];
-    for (const uri of uris) {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const filename = `mapLocations/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-      const refStorage = ref(storage, filename);
-      await uploadBytes(refStorage, blob);
-      const downloadUrl = await getDownloadURL(refStorage);
-      urls.push(downloadUrl);
-    }
-    return urls;
-  };
- 
   const fetchPlaceOwner = async (userId: string) => {
     try {
-      const userDoc = await getDoc(doc(firestore, 'users', userId));
-      if (userDoc.exists()) {
-        const userInfo = userDoc.data();
+      const userInfo = await getUserProfile(userId);
+      if (userInfo) {
         const ownerData = {
           name: userInfo.name || 'Usuario sin nombre',
           photo: userInfo.photo
@@ -335,49 +317,30 @@ export default function MapScreen() {
   
   //auth y amigos
   useEffect(() => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-  
-    if (user) {
-      setCurrentUserId(user.uid);
-  
-      // Cargar amigos
-      const loadFriends = async () => {
-        const userRef = doc(firestore, 'users', user.uid);
-        const snapshot = await getDoc(userRef);
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          setFriendIds(data.friends || []);
-        }
-      };
-  
-      loadFriends();
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!user || cancelled) return;
+        setCurrentUserId(user.id);
+        const ids = await getFriendIds(user.id);
+        if (!cancelled) setFriendIds(ids);
+      } catch (error) {
+        console.error('❌ Error cargando usuario y amigos:', error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   //fetch locations
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const querySnapshot = await getDocs(collection(firestore, 'mapLocations'));
-        const loadedLocations = querySnapshot.docs
-          .map((doc) => doc.data())
-          .filter((loc) => 
-            loc.createdBy === currentUserId || friendIds.includes(loc.createdBy)
-          )
-          .map((loc) => ({
-            id: loc.locationId,
-            title: loc.title,
-            description: loc.description,
-            geoPoint: {
-              latitude: loc.geoPoint.latitude,
-              longitude: loc.geoPoint.longitude,
-            },
-            type: loc.type,
-            imageUrl: loc.imageUrl,
-            createdBy: loc.createdBy,
-            rating: loc.rating || [],
-          }));
+        const loadedLocations = (await getAllLocations()).filter(
+          (loc) => loc.createdBy === currentUserId || friendIds.includes(loc.createdBy)
+        );
         setLocations(loadedLocations);
       } catch (error) {
         console.error('❌ Error cargando lugares:', error);
@@ -405,31 +368,15 @@ export default function MapScreen() {
       return;
     }
   
-    let imageUrls: string[] = [];
-    if (selectedImages.length > 0) {
-      imageUrls = await uploadImages(selectedImages);
-    }
-  
-    const newId = Date.now().toString();
-    
-    const newMarker = {
-      locationId: newId,
-      title: manualMarkerName.trim(),
-      description: review.trim(),
-      rating: [{ userId: currentUserId, stars }],
-      geoPoint: new GeoPoint(
-        manualMarkerCoords.latitude,
-        manualMarkerCoords.longitude
-      ),
-      type: ['favoritos'],
-      imageUrl: imageUrls.length > 0 ? imageUrls[0] : '',
-      imageUrls,
-      createdBy: currentUserId,
-      createdAt: new Date(),
-    };
-  
     try {
-      await setDoc(doc(firestore, 'mapLocations', newId), newMarker);
+      await createLocation(currentUserId, {
+        title: manualMarkerName,
+        description: review,
+        coords: manualMarkerCoords,
+        types: ['favoritos'],
+        rating: stars,
+        images: selectedImages,
+      });
       Alert.alert('✅ Lugar guardado correctamente');
       // limpiar estados
       setManualMarkerName('');
@@ -449,23 +396,7 @@ export default function MapScreen() {
   //volver a fetchear ubis
   const fetchLocationsAgain = async () => {
     try {
-      const querySnapshot = await getDocs(collection(firestore, 'mapLocations'));
-      const loadedLocations = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: data.locationId,
-          title: data.title,
-          description: data.description,
-          geoPoint: {
-            latitude: data.geoPoint.latitude,
-            longitude: data.geoPoint.longitude,
-          },
-          type: data.type,
-          imageUrl: data.imageUrl,
-          createdBy: data.createdBy,
-          rating: data.rating || [],
-        };
-      });
+      const loadedLocations = await getAllLocations();
       setLocations(loadedLocations);
     } catch (error) {
       console.error('❌ Error recargando lugares:', error);
@@ -512,8 +443,7 @@ export default function MapScreen() {
       await set(DatabaseRef(database, `raiteRequests/${userId}`), raiteData);
       
       // Obtener datos del usuario actual para la notificación
-      const currentUserDoc = await getDoc(doc(firestore, 'users', userId));
-      const currentUserData = currentUserDoc.data();
+      const currentUserData = await getUserProfile(userId);
       const currentUserName = currentUserData?.name || 'Usuario';
       const currentUserPhoto = currentUserData?.photo || '';
       
@@ -623,9 +553,8 @@ export default function MapScreen() {
         const friendsData: Friend[] = [];
   
         for (const friendId of friendIds) {
-          const friendDoc = await getDoc(doc(firestore, 'users', friendId));
-          if (friendDoc.exists()) {
-            const friendInfo = friendDoc.data();
+          const friendInfo = await getUserProfile(friendId);
+          if (friendInfo) {
             friendsData.push({
               id: friendId,
               name: friendInfo.name || 'Usuario sin nombre',
