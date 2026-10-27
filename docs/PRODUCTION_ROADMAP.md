@@ -60,7 +60,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [~] Auth: email, Google y Apple; deep links con el scheme nuevo — código migrado en `supabase-migration` (cliente, `services/auth.ts`, perfiles, avatar en Storage, Sign in with Apple). Apple y Google (web + iOS) ya configurados en Supabase; falta el cliente Android de Google (tras el primer build de EAS) y probar en dispositivo
 - [ ] Migrar dominios de la app a Supabase en la rama `supabase-migration` (ver CLAUDE.md): [x] auth/perfiles · [x] posts/feed · [x] foro · [x] mapa · [~] mentores/chat (servicios, chat y pantallas migrados; falta probar Realtime end-to-end en dev build) · [~] amistades/notificaciones (servicios, contexto, friendRequest, layout e index en Supabase; migración 20261025000009 aplicada: notificaciones de amistad y de chat por trigger; faltan marcar leídas al abrir un chat y raites en map.tsx) · [ ] admin/ajustes
 - [x] Storage: buckets `avatars` y `post-images` con políticas
-- [~] Realtime para chat y notificaciones; triggers que encolan push vía Edge Function (Realtime de `messages`/`notifications` activo desde la migración 3; `push_queue` + trigger de `20261021000005_realtime_push.sql` aplicados; falta la Edge Function de envío)
+- [~] Realtime para chat y notificaciones; trigger que encola push en `push_queue` (migración `20261021000005` aplicada en `zoidnphuqxuvocoelrfj`) y Edge Function `send-push` desplegada (`supabase/functions/send-push`). Pendiente: programar su invocación (pg_cron / Database Webhook) y registrar `push_tokens` desde la app (`expo-notifications`)
 - [ ] Retirar Firebase y borrar los archivos `google-services.json` / `GoogleService-Info.plist`
 
 ### Fase 4 — Cumplimiento y calidad (`security-compliance` + `qa-engineer`)
