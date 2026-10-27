@@ -15,8 +15,18 @@ import {
   ScrollView
 } from 'react-native';
 import { Ionicons, Feather, MaterialIcons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import { collection, getDocs, doc, deleteDoc, query, orderBy, where } from 'firebase/firestore';
-import { firestore } from '../../../firebase';
+import {
+  listAdminItems,
+  sortAdminItems,
+  deleteAdminItem,
+  type AdminCategory,
+  type AdminItem,
+  type AdminUser,
+  type AdminMentor,
+  type AdminPost,
+  type AdminLocation,
+  type AdminForum,
+} from '../../../services/adminService';
 import { useRouter } from 'expo-router';   // ← añadir
 import MaxWidthContainer from '../../../components/MaxWidthContainer';
 
@@ -24,68 +34,20 @@ import MaxWidthContainer from '../../../components/MaxWidthContainer';
 export default function ManagementScreen() {
   const router = useRouter();               // ← reemplaza navigation
 
-  interface User {
-    id: string;
-    name?: string;
-    email?: string;
-    role?: string;
-    photoURL?: string;
-  }
-
-  interface Mentor {
-    id: string;
-    name?: string;
-    photoURL?: string;
-    specialty?: string;
-    areas?: string[];     // ← añadido
-  }
-
-  interface Post {
-    id: string;
-    caption?: string;
-    text?: string;
-    image?: string;
-    userId?: string;
-    userName?: string;
-    userPhoto?: string;
-    location?: string;
-    createdAt?: any;
-    likes?: Record<string, boolean>;
-  }
-
-  interface Location {
-    id: string;
-    title?: string;
-    description?: string;
-    geoPoint?: {
-      latitude: number;
-      longitude: number;
-    };
-    imageUrl?: string;
-    imageUrls?: string[];
-    type?: string[];
-    createdAt?: any;
-    createdBy?: string;
-  }
-
-  interface Forum {
-    id: string;
-    title?: string;
-    question?: string;
-    authorId?: string;
-    authorName?: string;
-    createdAt?: any;
-  }
-
-  type DataItem = User | Mentor | Post | Location | Forum;
+  type User = AdminUser;
+  type Mentor = AdminMentor;
+  type Post = AdminPost;
+  type Location = AdminLocation;
+  type Forum = AdminForum;
+  type DataItem = AdminItem;
 
   // Category configuration (solo una declaración)
-  const categories = [
-    { id: 'users',    name: 'Estudiantes', collection: 'users',    icon: <Ionicons name="person-outline" size={24} color="#b388ff" /> },
-    { id: 'mentors',  name: 'Mentores',    collection: 'users',    icon: <FontAwesome5 name="chalkboard-teacher" size={22} color="#b388ff" /> },  // ← aquí
-    { id: 'posts',    name: 'Posts',       collection: 'feedPosts', icon: <MaterialCommunityIcons name="post-outline" size={24} color="#b388ff" /> },
-    { id: 'locations', name: 'Ubicaciones', collection: 'mapLocations',icon: <MaterialIcons name="location-on" size={24} color="#b388ff" /> },
-    { id: 'forums',   name: 'Foros',       collection: 'forumQuestions',icon: <MaterialCommunityIcons name="forum-outline" size={24} color="#b388ff" /> }
+  const categories: { id: AdminCategory; name: string; icon: React.ReactElement }[] = [
+    { id: 'users',    name: 'Estudiantes', icon: <Ionicons name="person-outline" size={24} color="#b388ff" /> },
+    { id: 'mentors',  name: 'Mentores',    icon: <FontAwesome5 name="chalkboard-teacher" size={22} color="#b388ff" /> },  // ← aquí
+    { id: 'posts',    name: 'Posts',       icon: <MaterialCommunityIcons name="post-outline" size={24} color="#b388ff" /> },
+    { id: 'locations', name: 'Ubicaciones', icon: <MaterialIcons name="location-on" size={24} color="#b388ff" /> },
+    { id: 'forums',   name: 'Foros',       icon: <MaterialCommunityIcons name="forum-outline" size={24} color="#b388ff" /> }
   ];
 
   const [activeCategory, setActiveCategory] = useState(categories[0]);
@@ -103,7 +65,7 @@ export default function ManagementScreen() {
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
-      setFilteredItems(items);
+      setFilteredItems(sortAdminItems(items, getSortFieldForCategory(), sortOrder));
     } else {
       const lowercasedQuery = searchQuery.toLowerCase();
       const filtered = items.filter(item => {
@@ -117,50 +79,32 @@ export default function ManagementScreen() {
                    (item as Mentor).specialty?.toLowerCase().includes(lowercasedQuery);
           case 'posts':
             return (item as Post).caption?.toLowerCase().includes(lowercasedQuery) || 
-                   (item as Post).text?.toLowerCase().includes(lowercasedQuery) ||
                    (item as Post).userName?.toLowerCase().includes(lowercasedQuery);
           case 'locations':
             return (item as Location).title?.toLowerCase().includes(lowercasedQuery) || 
                    (item as Location).description?.toLowerCase().includes(lowercasedQuery);
           case 'forums':
             return (item as Forum).title?.toLowerCase().includes(lowercasedQuery) || 
-                   (item as Forum).question?.toLowerCase().includes(lowercasedQuery);
+                   (item as Forum).authorName?.toLowerCase().includes(lowercasedQuery);
           default:
             return false;
         }
       });
-      setFilteredItems(filtered);
+      setFilteredItems(sortAdminItems(filtered, getSortFieldForCategory(), sortOrder));
     }
-  }, [searchQuery, items, activeCategory]);
+  }, [searchQuery, items, activeCategory, sortBy, sortOrder]);
 
   const fetchItems = async () => {
     try {
       setLoading(true);
       setSearchQuery('');
-      const sortField = getSortFieldForCategory();
-      let q;
-      if (activeCategory.id === 'mentors') {
-        // ↪ traer de 'users' donde isMentor===true
-        q = query(
-          collection(firestore, 'users'),
-          where('isMentor', '==', true),
-          orderBy(sortField, sortOrder)
-        );
-      } else {
-        q = query(
-          collection(firestore, activeCategory.collection),
-          orderBy(sortField, sortOrder)
-        );
-      }
-      const snap = await getDocs(q);
-      const itemsList: DataItem[] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const itemsList = await listAdminItems(activeCategory.id);
       setItems(itemsList);
-      setFilteredItems(itemsList);
-      setLoading(false);
-      setRefreshing(false);
+      setFilteredItems(sortAdminItems(itemsList, getSortFieldForCategory(), sortOrder));
     } catch (error) {
       console.error(`Error fetching ${activeCategory.name}:`, error);
       Alert.alert("Error", `No se pudieron cargar los ${activeCategory.name.toLowerCase()}`);
+    } finally {
       setLoading(false);
       setRefreshing(false);
     }
@@ -200,7 +144,7 @@ export default function ManagementScreen() {
         style: "destructive" as "destructive",
         onPress: async () => {
           try {
-            await deleteDoc(doc(firestore, activeCategory.collection, itemId));
+            await deleteAdminItem(activeCategory.id, itemId);
             // Remove item from state
             const updatedItems = items.filter(item => item.id !== itemId);
             setItems(updatedItems);
@@ -224,14 +168,10 @@ export default function ManagementScreen() {
   const toggleSortOrder = () => {
     const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
     setSortOrder(newOrder);
-    // Re-fetch with new sort order
-    fetchItems();
   };
 
   const changeSortBy = (field: string) => {
     setSortBy(field);
-    // Re-fetch with new sort field
-    fetchItems();
   };
 
   const getSortOptions = () => {
@@ -384,15 +324,15 @@ export default function ManagementScreen() {
         )}
         
         <View style={styles.itemDetails}>
-          <Text style={styles.itemTitle}>{post.caption || post.text || 'Sin título'}</Text>
+          <Text style={styles.itemTitle}>{post.caption || 'Sin título'}</Text>
           <Text style={styles.itemSubtitle}>
-            Por: {post.userName || 'Anónimo'} {post.location ? `• ${post.location}` : ''}
+            Por: {post.userName || 'Anónimo'}
           </Text>
           <View style={styles.postStats}>
             <View style={styles.postStat}>
               <Ionicons name="heart" size={14} color="#b388ff" />
               <Text style={styles.postStatText}>
-                {post.likes ? Object.keys(post.likes).length : 0}
+                {post.likesCount}
               </Text>
             </View>
           </View>
@@ -477,7 +417,6 @@ export default function ManagementScreen() {
       <View style={styles.itemInfo}>
         <View style={styles.itemDetails}>
           <Text style={styles.itemTitle}>{forum.title || 'Sin título'}</Text>
-          <Text style={styles.itemSubtitle} numberOfLines={2}>{forum.question || 'Sin pregunta'}</Text>
           <Text style={styles.itemMeta}>Por: {forum.authorName || 'Anónimo'}</Text>
         </View>
       </View>

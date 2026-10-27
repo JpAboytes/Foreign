@@ -1,7 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from './firebase/config';
 import { supabase } from './supabase/client';
 
 // Interfaces
@@ -47,42 +45,6 @@ export const processImage = async (
     return processed.uri;
   } catch (error) {
     console.error('Error procesando imagen:', error);
-    throw error;
-  }
-};
-
-// Convertir URI a Blob para subir a Firebase
-export const uriToBlob = async (uri: string): Promise<Blob> => {
-  try {
-    const response = await fetch(uri);
-    return await response.blob();
-  } catch (error) {
-    console.error('Error convirtiendo uri a blob:', error);
-    throw error;
-  }
-};
-
-// Subir imagen a Firebase Storage
-export const uploadImageToFirebase = async (
-  uri: string, 
-  path: string,
-  processOptions: { width?: number; quality?: number } = {}
-): Promise<string> => {
-  try {
-    // Procesar imagen para optimizarla
-    const processedUri = await processImage(uri, processOptions);
-    
-    // Convertir a blob
-    const blob = await uriToBlob(processedUri);
-    
-    // Crear referencia y subir
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, blob);
-    
-    // Obtener URL de descarga
-    return await getDownloadURL(storageRef);
-  } catch (error) {
-    console.error('Error subiendo imagen a Firebase:', error);
     throw error;
   }
 };

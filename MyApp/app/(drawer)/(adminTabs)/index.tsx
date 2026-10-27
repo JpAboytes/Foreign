@@ -10,8 +10,7 @@ import {
   ScrollView
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import { collection, getDocs } from 'firebase/firestore';
-import { firestore } from '../../../firebase';
+import { getAdminCounts } from '../../../services/adminService';
 import { useNavigation } from 'expo-router'; // <--- AÑADIDO
 import MaxWidthContainer from '../../../components/MaxWidthContainer';
 
@@ -44,53 +43,17 @@ export default function App() {
 
   const fetchCounts = async () => {
     try {
-      const usersCollection = collection(firestore, 'users');
-      const userSnapshot = await getDocs(usersCollection);
-      setCounts(prev => ({ ...prev, students: userSnapshot.size }));
-      setLoading(prev => ({ ...prev, students: false }));
-
-      try {
-        const mentorsCollection = collection(firestore, 'mentors');
-        const mentorsSnapshot = await getDocs(mentorsCollection);
-        setCounts(prev => ({ ...prev, mentors: mentorsSnapshot.size }));
-      } catch (error) {
-        console.error("Error fetching mentors:", error);
-      } finally {
-        setLoading(prev => ({ ...prev, mentors: false }));
-      }
-
-      try {
-        const postsCollection = collection(firestore, 'posts');
-        const postsSnapshot = await getDocs(postsCollection);
-        setCounts(prev => ({ ...prev, posts: postsSnapshot.size }));
-      } catch (error) {
-        console.error("Error fetching posts:", error);
-      } finally {
-        setLoading(prev => ({ ...prev, posts: false }));
-      }
-
-      try {
-        const locationsCollection = collection(firestore, 'locations');
-        const locationsSnapshot = await getDocs(locationsCollection);
-        setCounts(prev => ({ ...prev, locations: locationsSnapshot.size }));
-      } catch (error) {
-        console.error("Error fetching locations:", error);
-      } finally {
-        setLoading(prev => ({ ...prev, locations: false }));
-      }
-
-      try {
-        const forumsCollection = collection(firestore, 'forums');
-        const forumsSnapshot = await getDocs(forumsCollection);
-        setCounts(prev => ({ ...prev, forums: forumsSnapshot.size }));
-      } catch (error) {
-        console.error("Error fetching forums:", error);
-      } finally {
-        setLoading(prev => ({ ...prev, forums: false }));
-      }
-
+      const result = await getAdminCounts();
+      setCounts({
+        students: result.students ?? 0,
+        mentors: result.mentors ?? 0,
+        posts: result.posts ?? 0,
+        locations: result.locations ?? 0,
+        forums: result.forums ?? 0,
+      });
     } catch (error) {
       console.error("Error fetching counts:", error);
+    } finally {
       setLoading({
         students: false,
         mentors: false,

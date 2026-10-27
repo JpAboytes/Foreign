@@ -4,8 +4,7 @@ import {
   Alert, StyleSheet, FlatList, View, ActivityIndicator 
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { firestore } from '../../../firebase';
-import { collection, getDocs, doc, updateDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { addMentor, listMentorCandidates } from '../../../services/adminService';
 import { Ionicons } from '@expo/vector-icons';
 
 // Interfaces
@@ -30,17 +29,8 @@ export default function AddMentor() {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        // Busca usuarios que NO son mentores todavía
-        const q = query(
-          collection(firestore, 'users'), 
-          where('isMentor', '!=', true)
-        );
-        const snapshot = await getDocs(q);
-        
-        const usersList = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data() as any
-        }));
+        // Usuarios que todavía no son mentores
+        const usersList: User[] = await listMentorCandidates();
         
         setUsers(usersList);
         setFilteredUsers(usersList);
@@ -84,22 +74,14 @@ export default function AddMentor() {
     }
 
     try {
-      // Actualizar usuario existente en lugar de crear uno nuevo
-      await updateDoc(doc(firestore, 'users', selectedUser.id), {
-        isMentor: true,
-        areas,
-        updatedAt: serverTimestamp()
-      });
+      await addMentor(selectedUser.id, areas);
       
       Alert.alert('Éxito', `${selectedUser.name || 'Usuario'} ahora es mentor`, [
         { 
           text: 'OK', 
           onPress: () => {
             // Reemplazar navegación para forzar recarga
-            router.replace({
-              pathname: './gestionUsuarios',
-              params: { refresh: 'true', activeTab: 'mentors' }
-            });
+            router.replace({ pathname: './manageMentors' });
           }
         }
       ]);

@@ -585,6 +585,7 @@ export type Database = {
           id: string
           interests: string[]
           name: string
+          notifications_enabled: boolean
           origin: string | null
           photo_url: string | null
           university: string | null
@@ -594,6 +595,7 @@ export type Database = {
           id: string
           interests?: string[]
           name?: string
+          notifications_enabled?: boolean
           origin?: string | null
           photo_url?: string | null
           university?: string | null
@@ -603,6 +605,7 @@ export type Database = {
           id?: string
           interests?: string[]
           name?: string
+          notifications_enabled?: boolean
           origin?: string | null
           photo_url?: string | null
           university?: string | null
@@ -784,6 +787,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_user: { Args: { p_user_id: string }; Returns: undefined }
+      admin_list_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          is_admin: boolean
+          is_mentor: boolean
+          name: string
+          photo_url: string
+          university: string
+        }[]
+      }
+      delete_my_account: { Args: never; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_chat_participant: { Args: { p_session_id: string }; Returns: boolean }
     }
