@@ -1,18 +1,3 @@
-import { 
-  doc,
-  addDoc,
-  writeBatch,
-  getDoc, 
-  updateDoc, 
-  collection,
-  query,
-  where,
-  getDocs,
-  arrayUnion,
-  arrayRemove,
-  serverTimestamp
-} from 'firebase/firestore';
-import { firestore } from './firebase/config';
 import { uploadProfileImage } from './imageService';
 import { UserProfile, getUserProfile, createOrUpdateUserProfile } from './userService';
 import { Post, getPostsByUser } from './postService';
@@ -72,154 +57,153 @@ export const getFriendIds = async (userId: string): Promise<string[]> => {
   return data.map((f) => (f.requester_id === userId ? f.addressee_id : f.requester_id));
 };
 
-// Verificar estado de amistad
+// Verificar estado de amistad.
+// isPending: yo envié la solicitud y sigue pendiente. isRequested: el otro me envió una solicitud.
 export const checkFriendshipStatus = async (
-  currentUserId: string, 
+  currentUserId: string,
   targetUserId: string
 ): Promise<FollowStatus> => {
-  try {
-    // Obtener usuario actual
-    const currentUserDoc = await getDoc(doc(firestore, 'users', currentUserId));
-    
-    // Obtener usuario objetivo
-    const targetUserDoc = await getDoc(doc(firestore, 'users', targetUserId));
-    
-    if (!currentUserDoc.exists() || !targetUserDoc.exists()) {
-      throw new Error('Usuario no encontrado');
-    }
-    
-    const currentUserData = currentUserDoc.data();
-    const targetUserData = targetUserDoc.data();
-    
-    const friends = currentUserData.friends || [];
-    const pendingRequests = currentUserData.pendingRequests || [];
-    const friendRequests = targetUserData.friendRequests || [];
-    
-    return {
-      isFriend: friends.includes(targetUserId),
-      isPending: pendingRequests.includes(targetUserId),
-      isRequested: friendRequests.includes(currentUserId)
-    };
-  } catch (error) {
+  const { data, error } = await supabase
+    .from('friendships')
+    .select('requester_id, addressee_id, status')
+    .or(
+      `and(requester_id.eq.${currentUserId},addressee_id.eq.${targetUserId}),` +
+        `and(requester_id.eq.${targetUserId},addressee_id.eq.${currentUserId})`
+    );
+  if (error) {
     console.error('Error verificando estado de amistad:', error);
     throw error;
   }
+  const rows = data ?? [];
+  return {
+    isFriend: rows.some((f) => f.status === 'accepted'),
+    isPending: rows.some((f) => f.status === 'pending' && f.requester_id === currentUserId),
+    isRequested: rows.some((f) => f.status === 'pending' && f.requester_id === targetUserId),
+  };
 };
 
-// Enviar solicitud de amistad
+// Enviar solicitud de amistad. La notificación al destinatario la crea el trigger
+// notify_friend_request en la base de datos.
 export const sendFriendRequest = async (
-  currentUserId: string, 
+  currentUserId: string,
   targetUserId: string
 ): Promise<void> => {
-  try {
-    // Actualizar pendingRequests del usuario actual
-    await updateDoc(doc(firestore, 'users', currentUserId), {
-      pendingRequests: arrayUnion(targetUserId)
-    });
-    
-    // Actualizar friendRequests del usuario objetivo
-    await updateDoc(doc(firestore, 'users', targetUserId), {
-      friendRequests: arrayUnion(currentUserId)
-    });
-    
-    // Crear notificación
-    await addDoc(collection(firestore, 'notifications'), {
-      type: 'friend_request',
-      fromUserId: currentUserId,
-      toUserId: targetUserId,
-      read: false,
-      createdAt: serverTimestamp()
-    });
-  } catch (error) {
+  const { error } = await supabase
+    .from('friendships')
+    .insert({ requester_id: currentUserId, addressee_id: targetUserId, status: 'pending' });
+  if (error) {
     console.error('Error enviando solicitud de amistad:', error);
     throw error;
   }
 };
 
-// Aceptar solicitud de amistad
+// Aceptar solicitud de amistad (la notificación al solicitante la crea el trigger).
 export const acceptFriendRequest = async (
-  currentUserId: string, 
+  currentUserId: string,
   requesterId: string
 ): Promise<void> => {
-  try {
-    // Batch update
-    const batch = writeBatch(firestore);
-    
-    // Actualizar amigos del usuario actual
-    const currentUserRef = doc(firestore, 'users', currentUserId);
-    batch.update(currentUserRef, {
-      friends: arrayUnion(requesterId),
-      friendRequests: arrayRemove(requesterId)
-    });
-    
-    // Actualizar amigos del solicitante
-    const requesterRef = doc(firestore, 'users', requesterId);
-    batch.update(requesterRef, {
-      friends: arrayUnion(currentUserId),
-      pendingRequests: arrayRemove(currentUserId)
-    });
-    
-    await batch.commit();
-    
-    // Crear notificación
-    await addDoc(collection(firestore, 'notifications'), {
-      type: 'friend_accepted',
-      fromUserId: currentUserId,
-      toUserId: requesterId,
-      read: false,
-      createdAt: serverTimestamp()
-    });
-  } catch (error) {
+  const { data, error } = await supabase
+    .from('friendships')
+    .update({ status: 'accepted' })
+    .eq('requester_id', requesterId)
+    .eq('addressee_id', currentUserId)
+    .eq('status', 'pending')
+    .select('id');
+  if (error) {
     console.error('Error aceptando solicitud de amistad:', error);
     throw error;
+  }
+  if (!data || data.length === 0) {
+    throw new Error('No hay una solicitud pendiente de este usuario.');
   }
 };
 
 // Rechazar solicitud de amistad
 export const rejectFriendRequest = async (
-  currentUserId: string, 
+  currentUserId: string,
   requesterId: string
 ): Promise<void> => {
-  try {
-    // Actualizar usuario actual
-    await updateDoc(doc(firestore, 'users', currentUserId), {
-      friendRequests: arrayRemove(requesterId)
-    });
-    
-    // Actualizar solicitante
-    await updateDoc(doc(firestore, 'users', requesterId), {
-      pendingRequests: arrayRemove(currentUserId)
-    });
-  } catch (error) {
+  const { error } = await supabase
+    .from('friendships')
+    .delete()
+    .eq('requester_id', requesterId)
+    .eq('addressee_id', currentUserId)
+    .eq('status', 'pending');
+  if (error) {
     console.error('Error rechazando solicitud de amistad:', error);
     throw error;
   }
 };
 
-// Eliminar amigo
+// Eliminar amigo (la amistad puede haberse creado en cualquier dirección)
 export const removeFriend = async (
-  currentUserId: string, 
+  currentUserId: string,
   friendId: string
 ): Promise<void> => {
-  try {
-    // Batch update
-    const batch = writeBatch(firestore);
-    
-    // Actualizar usuario actual
-    const currentUserRef = doc(firestore, 'users', currentUserId);
-    batch.update(currentUserRef, {
-      friends: arrayRemove(friendId)
-    });
-    
-    // Actualizar amigo
-    const friendRef = doc(firestore, 'users', friendId);
-    batch.update(friendRef, {
-      friends: arrayRemove(currentUserId)
-    });
-    
-    await batch.commit();
-  } catch (error) {
+  const { error } = await supabase
+    .from('friendships')
+    .delete()
+    .or(
+      `and(requester_id.eq.${currentUserId},addressee_id.eq.${friendId}),` +
+        `and(requester_id.eq.${friendId},addressee_id.eq.${currentUserId})`
+    );
+  if (error) {
     console.error('Error eliminando amigo:', error);
     throw error;
   }
+};
+
+export interface FriendSearchUser {
+  id: string;
+  name?: string;
+  photo?: string;
+}
+
+export interface FriendSearchOverview {
+  users: FriendSearchUser[];
+  friends: string[];
+  // Usuarios que me enviaron solicitud y espero aceptar o rechazar.
+  pendingRequests: string[];
+  // Usuarios a los que ya les envié solicitud.
+  sentRequests: string[];
+}
+
+// Datos de la pantalla "Buscar amigos": todos los perfiles menos el propio y el estado de amistad.
+export const getFriendSearchOverview = async (userId: string): Promise<FriendSearchOverview> => {
+  const [profilesResult, friendshipsResult] = await Promise.all([
+    supabase.from('profiles').select('id, name, photo_url').neq('id', userId).order('name'),
+    supabase
+      .from('friendships')
+      .select('requester_id, addressee_id, status')
+      .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
+  ]);
+  if (profilesResult.error) {
+    console.error('Error obteniendo usuarios:', profilesResult.error);
+    throw profilesResult.error;
+  }
+  if (friendshipsResult.error) {
+    console.error('Error obteniendo amistades:', friendshipsResult.error);
+    throw friendshipsResult.error;
+  }
+
+  const friends: string[] = [];
+  const pendingRequests: string[] = [];
+  const sentRequests: string[] = [];
+  for (const f of friendshipsResult.data ?? []) {
+    const otherId = f.requester_id === userId ? f.addressee_id : f.requester_id;
+    if (f.status === 'accepted') friends.push(otherId);
+    else if (f.requester_id === userId) sentRequests.push(otherId);
+    else pendingRequests.push(otherId);
+  }
+
+  return {
+    users: (profilesResult.data ?? []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      photo: p.photo_url ?? undefined,
+    })),
+    friends,
+    pendingRequests,
+    sentRequests,
+  };
 };

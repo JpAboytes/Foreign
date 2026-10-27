@@ -1,9 +1,8 @@
 import { Redirect } from "expo-router";
 import { View, ActivityIndicator } from "react-native";
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, firestore } from '../../firebase';
+import { subscribeToAuthChanges } from '../../services/auth';
+import { isUserAdmin } from '../../services/userService';
 
 export default function Index() {
   const [user, setUser] = useState<any>(null);
@@ -12,18 +11,11 @@ export default function Index() {
   const [checkingRole, setCheckingRole] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = subscribeToAuthChanges(async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
         try {
-          const userDocRef = doc(firestore, "users", currentUser.uid);
-          const userSnapshot = await getDoc(userDocRef);
-
-          if (userSnapshot.exists()) {
-            setIsAdmin(userSnapshot.data()?.isAdmin || false);
-          } else {
-            setIsAdmin(false);
-          }
+          setIsAdmin(await isUserAdmin());
         } catch (error) {
           console.error("Error fetching user role:", error);
           setIsAdmin(false);
