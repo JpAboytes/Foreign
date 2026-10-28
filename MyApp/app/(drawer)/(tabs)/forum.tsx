@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getAuth } from 'firebase/auth';
+
 import { useUser } from '../../../context/UserContext';
 import { formatTimeAgo } from '../../../utils/formatters';
 import MaxWidthContainer from '../../../components/MaxWidthContainer';
@@ -14,9 +14,7 @@ import EmptyForum from '../../../components/forum/EmptyForum';
 export default function ForumScreen() {
   const router = useRouter();
   const [questionText, setQuestionText] = useState('');
-  const auth = getAuth();
-  const user = auth.currentUser;
-  const { userProfile } = useUser();
+  const { user } = useUser();
   
   const { 
     questions, 
@@ -29,13 +27,7 @@ export default function ForumScreen() {
   const handleAddQuestion = async () => {
     if (!questionText.trim() || !user) return;
 
-    const forumUser: ForumUser = {
-      id: user.uid,
-      name: userProfile?.name || user.displayName || 'Usuario sin nombre',
-      photo: userProfile?.photo || '',
-    };
-
-    await addQuestion(questionText, forumUser);
+    await addQuestion(questionText, user.id);
     setQuestionText('');
   };
 

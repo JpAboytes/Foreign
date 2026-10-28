@@ -20,9 +20,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUser } from '../../context/UserContext'; // <-- Import useUser
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage, firestore, auth } from '../../firebase'; // Assuming auth is needed
-import { doc, updateDoc } from 'firebase/firestore';
+import { uploadProfileImage } from '../../services/imageService';
+import { updateUserProfile } from '../../services/profileService';
 import { Ionicons } from '@expo/vector-icons'; // Added Ionicons
 
 // Default image asset (optional, but good practice)
@@ -64,11 +63,8 @@ export default function EditProfileScreen() {
     const uploadImage = async (uri: string): Promise<string | null> => {
         try {
             setIsUploading(true);
-            const response = await fetch(uri);
-            const blob = await response.blob();
-            const fileRef = ref(storage, `profile_images/${user?.uid || Date.now()}.jpg`);
-            await uploadBytes(fileRef, blob);
-            const downloadURL = await getDownloadURL(fileRef);
+            if (!user) throw new Error('Usuario no autenticado');
+            const downloadURL = await uploadProfileImage(uri, user.id);
             setIsUploading(false);
             return downloadURL;
         } catch (error) {
@@ -117,8 +113,7 @@ export default function EditProfileScreen() {
 
 
         try {
-            const userDocRef = doc(firestore, 'users', user.uid);
-            await updateDoc(userDocRef, {
+            await updateUserProfile(user.id, {
                 name: name.trim(),
                 origin: origin.trim(),
                 photo: finalImageUrl, // Save the final URL (uploaded or existing)

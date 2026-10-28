@@ -6,11 +6,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // <-- importar
 import { useLocalSearchParams, useNavigation } from 'expo-router';
-import { getAuth } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { firestore, database } from '../../firebase';              
-import { useChatMessages, sendMessage, generateChatId, RealtimeChatMessage } from '../../services/chatService';
-import { ref, update, get } from 'firebase/database'; // Asegúrate de importar update y get
+import { useAuth } from '../../hooks/useAuth';
+import { getUserProfile } from '../../services/userService';
+import {
+  subscribeToChatMessages,
+  sendMessage,
+  findDirectSession,
+  getOrCreateDirectSession,
+  markMessagesAsRead,
+  RealtimeChatMessage,
+} from '../../services/chatService';
 import MaxWidthContainer from '../../components/MaxWidthContainer';
 
 const defaultUserImage = require('../../assets/images/img7.jpg');
@@ -20,43 +25,57 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();                                // <-- hook
   const navigation = useNavigation();
   const { friendId, friendName } = useLocalSearchParams<{ friendId: string; friendName: string }>();
-  const currentUser = getAuth().currentUser;
+  const [{ user: currentUser }] = useAuth();
   const [input, setInput] = useState('');
   const [photoUri, setPhotoUri] = useState<string>();
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<RealtimeChatMessage[]>([]);
 
-  // 1) Generar chatId, recoger mensajes, ordenarlos…
-  const chatId = useMemo(() => {
-    if (!currentUser || !friendId) return null;
-    return generateChatId(currentUser.uid, friendId);
-  }, [currentUser, friendId]);
-  const messages = useChatMessages(chatId);
-  const sortedMessages = useMemo(
-    () => [...messages].sort((a, b) => a.timestamp - b.timestamp),
-    [messages]
-  );
+  // 1) Buscar la sesión con el amigo (se crea al enviar el primer mensaje)
+  useEffect(() => {
+    if (!currentUser || !friendId) return;
+    let active = true;
+    findDirectSession(currentUser.id, friendId)
+      .then((id) => active && setSessionId(id))
+      .catch((error) => console.error('Error buscando el chat:', error));
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.id, friendId]);
 
-  // 2) Recuperar foto del amigo directamente de Firestore
+  // 2) Mensajes en tiempo real (el servicio cierra el canal en el cleanup)
+  useEffect(() => {
+    if (!sessionId) {
+      setMessages([]);
+      return;
+    }
+    return subscribeToChatMessages(sessionId, setMessages);
+  }, [sessionId]);
+
+  // 3) Foto del amigo
   useEffect(() => {
     if (!friendId) return;
-    (async () => {
-      const snap = await getDoc(doc(firestore, 'users', friendId));
-      if (snap.exists()) {
-        const data = snap.data();
-        // tu campo podría llamarse 'photo' o 'photoURL'
-        setPhotoUri(data.photo as string || data.photoURL as string);
-      }
-    })();
+    getUserProfile(friendId)
+      .then((profile) => setPhotoUri(profile?.photo || undefined))
+      .catch((error) => console.error('Error obteniendo la foto:', error));
   }, [friendId]);
 
-  const handleSend = () => {
-    if (chatId && input.trim()) {
-      sendMessage(chatId, input.trim());
-      setInput('');
+  const handleSend = async () => {
+    const text = input.trim();
+    if (!currentUser || !friendId || !text) return;
+    setInput('');
+    try {
+      const id = sessionId ?? (await getOrCreateDirectSession(currentUser.id, friendId));
+      if (!sessionId) setSessionId(id);
+      await sendMessage(id, currentUser.id, text);
+    } catch (error) {
+      console.error('Error enviando mensaje:', error);
+      setInput(text);
     }
   };
 
   const renderItem = ({ item }: { item: RealtimeChatMessage }) => {
-    const isUser = item.from === currentUser?.uid;
+    const isUser = item.from === currentUser?.id;
     return (
       <View
         style={[
@@ -76,52 +95,22 @@ export default function ChatScreen() {
     );
   };
 
-  // tras calcular sortedMessages:
+  // Mensajes únicos (el servicio ya los entrega en orden cronológico)
   const uniqueMessages = useMemo(() => {
     const seen = new Set<string>();
-    return sortedMessages.filter(m => {
+    return messages.filter(m => {
       if (seen.has(m.id)) return false;
       seen.add(m.id);
       return true;
     });
-  }, [sortedMessages]);
+  }, [messages]);
 
-  // Añade esta función para marcar mensajes como leídos
+  // Marcar como leídos los mensajes del amigo cuando llegan
+  const lastIncomingId = uniqueMessages.filter(m => m.from !== currentUser?.id).at(-1)?.id;
   useEffect(() => {
-    const markMessagesAsRead = async () => {
-      if (!chatId || !currentUser || !friendId) return;
-      
-      try {
-        // 1. Obtener todos los mensajes de la conversación actual
-        const chatRef = ref(database, `messages/${chatId}`);
-        const snapshot = await get(chatRef);
-        
-        if (!snapshot.exists()) return;
-        
-        const updates: Record<string, boolean> = {};
-        
-        // 2. Recorrer los mensajes y marcar como leídos solo los que recibió el usuario actual
-        snapshot.forEach(messageSnapshot => {
-          const message = messageSnapshot.val();
-          // Solo marcar como leídos los mensajes enviados por el otro usuario (que el usuario actual recibió)
-          if (message.from === friendId && !message.read) {
-            updates[`messages/${chatId}/${messageSnapshot.key}/read`] = true;
-          }
-        });
-        
-        // 3. Si hay mensajes para actualizar, hacerlo de una sola vez
-        if (Object.keys(updates).length > 0) {
-          await update(ref(database), updates);
-          console.log(`${Object.keys(updates).length} mensajes marcados como leídos`);
-        }
-      } catch (error) {
-        console.error("Error al marcar mensajes como leídos:", error);
-      }
-    };
-
-    // Ejecutar al montar el componente y si cambia el chatId
-    markMessagesAsRead();
-  }, [chatId, currentUser, friendId]);
+    if (!sessionId || !currentUser || !lastIncomingId) return;
+    markMessagesAsRead(sessionId, currentUser.id).catch(() => {});
+  }, [sessionId, currentUser?.id, lastIncomingId]);
 
   return (
     <KeyboardAvoidingView 

@@ -1,7 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from './firebase/config';
+import { supabase } from './supabase/client';
 
 // Interfaces
 export interface ImagePickerOptions {
@@ -50,47 +49,35 @@ export const processImage = async (
   }
 };
 
-// Convertir URI a Blob para subir a Firebase
-export const uriToBlob = async (uri: string): Promise<Blob> => {
-  try {
-    const response = await fetch(uri);
-    return await response.blob();
-  } catch (error) {
-    console.error('Error convirtiendo uri a blob:', error);
-    throw error;
-  }
-};
-
-// Subir imagen a Firebase Storage
-export const uploadImageToFirebase = async (
-  uri: string, 
+// Subir imagen a un bucket de Supabase Storage. Las políticas solo permiten escribir
+// en la carpeta del propio usuario, así que el path debe empezar con su id.
+export const uploadImageToSupabase = async (
+  uri: string,
+  bucket: 'avatars' | 'post-images',
   path: string,
   processOptions: { width?: number; quality?: number } = {}
 ): Promise<string> => {
   try {
-    // Procesar imagen para optimizarla
     const processedUri = await processImage(uri, processOptions);
-    
-    // Convertir a blob
-    const blob = await uriToBlob(processedUri);
-    
-    // Crear referencia y subir
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, blob);
-    
-    // Obtener URL de descarga
-    return await getDownloadURL(storageRef);
+    const body = await (await fetch(processedUri)).arrayBuffer();
+
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(path, body, { contentType: 'image/jpeg', upsert: true });
+    if (error) throw error;
+
+    return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
   } catch (error) {
-    console.error('Error subiendo imagen a Firebase:', error);
+    console.error('Error subiendo imagen a Supabase:', error);
     throw error;
   }
 };
 
-// Subir imagen de perfil
+// Subir imagen de perfil del usuario autenticado
 export const uploadProfileImage = async (
-  uri: string, 
+  uri: string,
   userId: string
 ): Promise<string> => {
-  const path = `profileImages/${userId}_${Date.now()}.jpg`;
-  return await uploadImageToFirebase(uri, path, { width: 800, quality: 0.8 });
+  const path = `${userId}/avatar-${Date.now()}.jpg`;
+  return await uploadImageToSupabase(uri, 'avatars', path, { width: 800, quality: 0.8 });
 };

@@ -1,58 +1,16 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { auth, firestore, database } from '../firebase';
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  orderBy, 
-  getCountFromServer, 
-  writeBatch, 
-  doc, 
-  getDocs,
-  updateDoc,
-  Timestamp,
-  addDoc,
-  deleteDoc
-} from 'firebase/firestore';
-import { ref, onValue, get, set, update, push } from 'firebase/database';
-import { getDoc } from 'firebase/firestore';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import { subscribeToAuthChanges } from '../services/auth';
+import {
+  Notification,
+  NotificationType,
+  createNotification as createNotificationRecord,
+  getNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  subscribeToNotifications,
+} from '../services/notificationService';
 
-// Añadir esta interfaz en la parte superior del archivo
-interface ChatMessage {
-  from: string;
-  text: string;
-  timestamp: number;
-  read?: boolean;
-}
-
-export type NotificationType = 
-  | 'message'
-  | 'post_like'
-  | 'post_comment'
-  | 'forum_question_like'
-  | 'forum_question_comment'
-  | 'forum_answer_like'
-  | 'forum_answer_comment'
-  | 'raite_request'  // Nuevo tipo
-  | 'raite_accepted' // Nuevo tipo
-  | 'raite_cancelled'; // Nuevo tipo
-
-export interface Notification {
-  id: string;
-  type: NotificationType;
-  fromUserId: string;
-  fromUserName: string;
-  fromUserPhoto?: string;
-  toUserId: string;
-  contentId: string;   // ID del post, pregunta o respuesta
-  contentText?: string; // Texto breve del contenido
-  timestamp: number;
-  read: boolean;
-  relatedContentId?: string; // Para respuestas dentro de preguntas
-  count?: number; // Para notificaciones agrupadas
-  senders?: { id: string; name: string; photo?: string }[]; // Añade esta línea
-}
+export type { Notification, NotificationType };
 
 // Para mensajes
 export interface MessageNotification {
@@ -65,11 +23,53 @@ export interface MessageNotification {
   timestamp: number;
 }
 
+// Agrupar notificaciones similares
+const groupNotifications = (notifs: Notification[]): Notification[] => {
+  const grouped = new Map<string, Notification>();
+  
+  notifs.forEach(notif => {
+    // CAMBIO AQUÍ: Modificar la clave para incluir el contentId 
+    // Esto asegura que notificaciones de distintas publicaciones 
+    // no se agrupen juntas, aun siendo del mismo tipo
+    const groupKey = `${notif.type}_${notif.contentId}`;
+    
+    if (grouped.has(groupKey)) {
+      // Si ya existe una notificación para este tipo y contentId
+      const existing = grouped.get(groupKey)!;
+      
+      // Asegurarnos de que 'senders' exista y sea un array
+      const currentSenders = existing.senders || [];
+      
+      // Añadir nuevo remitente si no está ya en la lista
+      const newSender = { id: notif.fromUserId, name: notif.fromUserName, photo: notif.fromUserPhoto };
+      const senderExists = currentSenders.some(sender => sender.id === newSender.id);
+      
+      grouped.set(groupKey, {
+        ...existing,
+        count: (existing.count || 1) + 1,
+        timestamp: Math.max(existing.timestamp, notif.timestamp), // Usar el timestamp más reciente
+        read: existing.read && notif.read, // Marcar como leído solo si todas en el grupo lo están
+        senders: senderExists ? currentSenders : [...currentSenders, newSender] // Actualizar lista de remitentes
+      });
+    } else {
+      // Si no existe, añadirla con contador 1 y lista de remitentes inicial
+      grouped.set(groupKey, {
+        ...notif,
+        count: 1,
+        senders: [{ id: notif.fromUserId, name: notif.fromUserName, photo: notif.fromUserPhoto }]
+      });
+    }
+  });
+  
+  return Array.from(grouped.values()).sort((a, b) => b.timestamp - a.timestamp);
+};
+
+
 interface NotificationContextType {
   notifications: Notification[];
   messageNotifications: MessageNotification[];
   hasUnread: boolean;
-  fetchNotifications: () => void;
+  fetchNotifications: () => Promise<void>;
   markAllAsRead: () => Promise<void>;
   markAsRead: (notificationId: string) => Promise<void>;
   createNotification: (data: Omit<Notification, 'id' | 'read' | 'timestamp'>) => Promise<void>;
@@ -79,7 +79,7 @@ const NotificationContext = createContext<NotificationContextType>({
   notifications: [],
   messageNotifications: [],
   hasUnread: false,
-  fetchNotifications: () => {},
+  fetchNotifications: async () => {},
   markAllAsRead: async () => {},
   markAsRead: async () => {},
   createNotification: async () => {},
@@ -87,237 +87,70 @@ const NotificationContext = createContext<NotificationContextType>({
 
 export const useNotifications = () => useContext(NotificationContext);
 
+// Mensajes de chat sin leer, agrupados por sesión (vienen como notificaciones chat_message
+// que crea el trigger de la tabla messages).
+const buildMessageNotifications = (all: Notification[]): MessageNotification[] => {
+  const bySession = new Map<string, MessageNotification>();
+  // all viene ordenado de más reciente a más antigua
+  for (const n of all) {
+    if (n.type !== 'chat_message' || n.read) continue;
+    const existing = bySession.get(n.contentId);
+    if (existing) {
+      existing.unreadCount += 1;
+    } else {
+      bySession.set(n.contentId, {
+        chatId: n.contentId,
+        userId: n.fromUserId,
+        userName: n.fromUserName || 'Usuario',
+        userPhoto: n.fromUserPhoto,
+        lastMessage: n.contentText || 'Nuevo mensaje',
+        unreadCount: 1,
+        timestamp: n.timestamp,
+      });
+    }
+  }
+  return Array.from(bySession.values()).sort((a, b) => b.timestamp - a.timestamp);
+};
+
 export const NotificationProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [messageNotifications, setMessageNotifications] = useState<MessageNotification[]>([]);
-  const [hasUnread, setHasUnread] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [allNotifications, setAllNotifications] = useState<Notification[]>([]);
+  const userIdRef = useRef<string | null>(null);
+  userIdRef.current = userId;
 
-  // Agrupar notificaciones similares
-  const groupNotifications = (notifs: Notification[]): Notification[] => {
-    const grouped = new Map<string, Notification>();
-    
-    notifs.forEach(notif => {
-      // CAMBIO AQUÍ: Modificar la clave para incluir el contentId 
-      // Esto asegura que notificaciones de distintas publicaciones 
-      // no se agrupen juntas, aun siendo del mismo tipo
-      const groupKey = `${notif.type}_${notif.contentId}`;
-      
-      if (grouped.has(groupKey)) {
-        // Si ya existe una notificación para este tipo y contentId
-        const existing = grouped.get(groupKey)!;
-        
-        // Asegurarnos de que 'senders' exista y sea un array
-        const currentSenders = existing.senders || [];
-        
-        // Añadir nuevo remitente si no está ya en la lista
-        const newSender = { id: notif.fromUserId, name: notif.fromUserName, photo: notif.fromUserPhoto };
-        const senderExists = currentSenders.some(sender => sender.id === newSender.id);
-        
-        grouped.set(groupKey, {
-          ...existing,
-          count: (existing.count || 1) + 1,
-          timestamp: Math.max(existing.timestamp, notif.timestamp), // Usar el timestamp más reciente
-          read: existing.read && notif.read, // Marcar como leído solo si todas en el grupo lo están
-          senders: senderExists ? currentSenders : [...currentSenders, newSender] // Actualizar lista de remitentes
-        });
-      } else {
-        // Si no existe, añadirla con contador 1 y lista de remitentes inicial
-        grouped.set(groupKey, {
-          ...notif,
-          count: 1,
-          senders: [{ id: notif.fromUserId, name: notif.fromUserName, photo: notif.fromUserPhoto }]
-        });
-      }
-    });
-    
-    return Array.from(grouped.values()).sort((a, b) => b.timestamp - a.timestamp);
-  };
+  const systemNotifications = allNotifications.filter(n => n.type !== 'chat_message');
+  const notifications = groupNotifications(systemNotifications);
+  const messageNotifications = buildMessageNotifications(allNotifications);
+  const hasUnread = systemNotifications.some(n => !n.read) || messageNotifications.length > 0;
 
-  // Crear una notificación
+  // Crear una notificación (la tabla exige que el emisor sea el usuario autenticado)
   const createNotification = async (data: Omit<Notification, 'id' | 'read' | 'timestamp'>) => {
     try {
-      const currentUser = auth.currentUser;
-      
-      // No crear notificaciones para uno mismo
-      if (currentUser?.uid === data.toUserId) {
-        return;
-      }
-      
-      // Crear notificación en Realtime Database
-      const notifRef = ref(database, `notifications/${data.toUserId}`);
-      await push(notifRef, {
-        ...data,
-        timestamp: Date.now(),
-        read: false
-      });
-      
-      console.log('Notificación creada');
+      await createNotificationRecord(data);
     } catch (error) {
       console.error('Error al crear notificación:', error);
     }
   };
 
-  // Fetch y escucha de notificaciones
-  const fetchNotifications = () => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) return () => {};
-    
-    // 1. Escuchar notificaciones de Firestore
-    const unsubscribeNotifs = onSnapshot(
-      query(
-        collection(firestore, 'notifications'),
-        where('toUserId', '==', currentUser.uid),
-        orderBy('timestamp', 'desc')
-      ),
-      (snapshot) => {
-        if (snapshot.empty) {
-          setNotifications([]);
-          return;
-        }
-        
-        const notifs: Notification[] = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Notification[];
-        
-        // Agrupar notificaciones similares
-        const groupedNotifs = groupNotifications(notifs);
-        setNotifications(groupedNotifs);
-        
-        const hasUnreadFirestore = notifs.some(notif => !notif.read);
-        setHasUnread(hasUnreadFirestore || messageNotifications.length > 0);
-      }
-    );
-    
-    // 2. Escuchar mensajes no leídos
-    const messagesRef = ref(database, 'messages');
-    const unsubscribeMessages = onValue(messagesRef, async (snapshot) => {
-      if (!snapshot.exists()) return;
-      
-      const allChats = snapshot.val();
-      const chatIds = Object.keys(allChats).filter(id => id.includes(currentUser.uid));
-      
-      const messageNotifs: MessageNotification[] = [];
-      
-      for (const chatId of chatIds) {
-        const chatMessages = allChats[chatId];
-        if (!chatMessages) continue;
-        
-        const messagesArray = Object.values(chatMessages) as ChatMessage[];
-        const unreadMessages = messagesArray.filter((msg: ChatMessage) => 
-          msg.from !== currentUser.uid && !msg.read
-        );
-        
-        if (unreadMessages.length > 0) {
-          // Encontrar el último mensaje y su timestamp
-          const lastMessage = unreadMessages.reduce((latest: ChatMessage, msg: ChatMessage) => 
-            msg.timestamp > latest.timestamp ? msg : latest
-          , unreadMessages[0]); // Usar el primer mensaje como valor inicial
-          
-          // Obtener el ID del otro usuario
-          const [user1, user2] = chatId.split('_');
-          const otherUserId = user1 === currentUser.uid ? user2 : user1;
-          
-          // Obtener datos del otro usuario
-          const userDoc = await getDoc(doc(firestore, 'users', otherUserId));
-          const userData = userDoc.exists() ? userDoc.data() : null;
-          
-          messageNotifs.push({
-            chatId,
-            userId: otherUserId,
-            userName: userData?.name || userData?.displayName || 'Usuario',
-            userPhoto: userData?.photo || userData?.photoURL,
-            lastMessage: lastMessage.text || 'Nuevo mensaje',
-            unreadCount: unreadMessages.length,
-            timestamp: lastMessage.timestamp || Date.now()
-          });
-        }
-      }
-      
-      // Ordenar por timestamp descendente
-      messageNotifs.sort((a, b) => b.timestamp - a.timestamp);
-      
-      setMessageNotifications(messageNotifs);
-      setHasUnread(notifications.some(notif => !notif.read) || messageNotifs.length > 0);
-    });
-    
-    return () => {
-      unsubscribeNotifs();
-      unsubscribeMessages();
-    };
-  };
-
-  // Marcar todas las notificaciones como leídas
-  const markAllAsRead = async () => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) return;
-    
+  // Recarga las notificaciones del usuario actual
+  const fetchNotifications = useCallback(async () => {
+    const currentId = userIdRef.current;
+    if (!currentId) return;
     try {
-      // 1. Marcar notificaciones de Realtime Database como leídas
-      const notifRef = ref(database, `notifications/${currentUser.uid}`);
-      const snapshot = await get(notifRef);
-      
-      if (snapshot.exists()) {
-        const updates: Record<string, boolean> = {};
-        
-        snapshot.forEach(child => {
-          if (!child.val().read) {
-            updates[`notifications/${currentUser.uid}/${child.key}/read`] = true;
-          }
-        });
-        
-        if (Object.keys(updates).length > 0) {
-          await update(ref(database), updates);
-        }
-      }
-      
-      // 2. Marcar mensajes como leídos
-      for (const msgNotif of messageNotifications) {
-        // Usar la implementación que ya tienes en chat.tsx
-        const chatRef = ref(database, `messages/${msgNotif.chatId}`);
-        const chatSnapshot = await get(chatRef);
-        
-        if (chatSnapshot.exists()) {
-          const updates: Record<string, boolean> = {};
-          
-          chatSnapshot.forEach(messageSnapshot => {
-            const message = messageSnapshot.val();
-            if (message.from === msgNotif.userId && !message.read) {
-              updates[`messages/${msgNotif.chatId}/${messageSnapshot.key}/read`] = true;
-            }
-          });
-          
-          if (Object.keys(updates).length > 0) {
-            await update(ref(database), updates);
-          }
-        }
-      }
+      const list = await getNotifications(currentId);
+      if (userIdRef.current === currentId) setAllNotifications(list);
+    } catch (error) {
+      console.error('Error al obtener notificaciones:', error);
+    }
+  }, []);
 
-      // 3. AÑADIR ESTE BLOQUE: Marcar notificaciones de Firestore como leídas
-      const batch = writeBatch(firestore);
-      const firestoreQuery = query(
-        collection(firestore, 'notifications'),
-        where('toUserId', '==', currentUser.uid),
-        where('read', '==', false)
-      );
-      
-      const unreadNotifications = await getDocs(firestoreQuery);
-      
-      unreadNotifications.forEach(doc => {
-        batch.update(doc.ref, { read: true });
-      });
-      
-      if (!unreadNotifications.empty) {
-        await batch.commit();
-        console.log('Todas las notificaciones de Firestore marcadas como leídas');
-      }
-      
-      // Actualizar estado local inmediatamente sin esperar a los listeners
-      setNotifications(prevNotifs => 
-        prevNotifs.map(notif => ({...notif, read: true}))
-      );
-      setMessageNotifications([]);
-      setHasUnread(false);
+  // Marcar todas las notificaciones (y mensajes) como leídas
+  const markAllAsRead = async () => {
+    if (!userId) return;
+    try {
+      await markAllNotificationsRead(userId);
+      // Actualizar estado local sin esperar a Realtime
+      setAllNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (error) {
       console.error('Error al marcar notificaciones como leídas:', error);
     }
@@ -326,37 +159,31 @@ export const NotificationProvider: React.FC<{children: React.ReactNode}> = ({ ch
   // Marcar una notificación específica como leída
   const markAsRead = async (notificationId: string) => {
     try {
-      const notificationRef = doc(firestore, 'notifications', notificationId);
-      await updateDoc(notificationRef, {
-        read: true
-      });
-      
-      // Actualizar también el estado local
-      setNotifications(prevNotifs => 
-        prevNotifs.map(notif => 
-          notif.id === notificationId ? {...notif, read: true} : notif
-        )
-      );
-      
-      // Verificar si todavía hay notificaciones no leídas
-      const stillHasUnread = notifications.some(n => n.id !== notificationId && !n.read) || 
-        messageNotifications.length > 0;
-      setHasUnread(stillHasUnread);
-      
-      console.log('Notificación marcada como leída:', notificationId);
+      await markNotificationRead(notificationId);
+      setAllNotifications(prev => prev.map(n => (n.id === notificationId ? { ...n, read: true } : n)));
     } catch (error) {
       console.error('Error al marcar notificación como leída:', error);
     }
   };
 
-  // Funciones de ayuda para crear tipos específicos de notificacionesiones de ayuda para crear tipos específicos de notificaciones
-
+  // Sesión: sigue al usuario autenticado
   useEffect(() => {
-    const unsubscribe = fetchNotifications();
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
+    const unsubscribe = subscribeToAuthChanges(user => {
+      setUserId(user?.id ?? null);
+      if (!user) setAllNotifications([]);
+    });
+    return () => unsubscribe();
   }, []);
+
+  // Carga inicial + Realtime; el canal se cierra en el cleanup
+  useEffect(() => {
+    if (!userId) return;
+    fetchNotifications();
+    const unsubscribe = subscribeToNotifications(userId, () => {
+      fetchNotifications();
+    });
+    return () => unsubscribe();
+  }, [userId, fetchNotifications]);
 
   return (
     <NotificationContext.Provider value={{

@@ -6,7 +6,8 @@ export default {
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "foreign",
+    // "mx.foreign.app" es el esquema al que regresa el login de Google (expo-auth-session usa <bundleId>:/oauthredirect).
+    scheme: ["foreign", "mx.foreign.app"],
     userInterfaceStyle: "automatic",
     owner: "foreign-project",
     splash: {
@@ -16,6 +17,7 @@ export default {
     },
     ios: {
       bundleIdentifier: "mx.foreign.app",
+      usesAppleSignIn: true,
       supportsTablet: true,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -46,11 +48,6 @@ export default {
           },
         ],
       },
-      config: {
-        googleSignIn: {
-          reservedClientId: "com.googleusercontent.apps.497729458678-oovq36fgcgdm6ho6unb5rql4gg30cupn",
-        },
-      },
     },
     android: {
       package: "mx.foreign.app",
@@ -60,7 +57,6 @@ export default {
         "CAMERA",
         "READ_MEDIA_IMAGES",
       ],
-      googleServicesFile: "./google-services.json",
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#ffffff",
@@ -74,6 +70,7 @@ export default {
     plugins: [
       "expo-router",
       "expo-web-browser",
+      "expo-apple-authentication",
       [
         "expo-location",
         {
@@ -113,16 +110,6 @@ export default {
       },
       eas: {
         projectId: "82b7e50c-dca6-4025-988a-090c649ce802",
-      },
-      firebase: {
-        apiKey: process.env.FIREBASE_API_KEY,
-        authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-        databaseURL: process.env.FIREBASE_DATABASE_URL,
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-        appId: process.env.FIREBASE_APP_ID,
-        measurementId: process.env.FIREBASE_MEASUREMENT_ID,
       },
     },
   },

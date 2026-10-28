@@ -13,24 +13,23 @@ import {
   ScrollView,
   Platform
 } from 'react-native';
-import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { firestore } from '../../firebase';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import MaxWidthContainer from '../../components/MaxWidthContainer';
+import { getCurrentUser } from '../../services/auth';
+import {
+  FriendSearchUser,
+  getFriendSearchOverview,
+  sendFriendRequest as sendRequest,
+  acceptFriendRequest as acceptRequest,
+  rejectFriendRequest as rejectRequest,
+} from '../../services/profileService';
 
-type UserData = {
-  id: string;
-  name?: string;
-  photo?: string;
-  friends?: string[];
-  pendingRequests?: string[];
-};
+type UserData = FriendSearchUser;
 
 export default function friendRequest() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [friends, setFriends] = useState<string[]>([]);
-  const currentUser = getAuth().currentUser;
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [pendingRequests, setPendingRequests] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
@@ -59,23 +58,23 @@ export default function friendRequest() {
 
   // Enviar solicitud de amistad
   const sendFriendRequest = async (targetUserId: string) => {
-    if (!currentUser) return;
+    if (!currentUserId) return;
     
     setLoadingFor(targetUserId, true);
     
     try {
-      const targetUserRef = doc(firestore, 'users', targetUserId);
-      
-      await updateDoc(targetUserRef, {
-        pendingRequests: arrayUnion(currentUser.uid),
-      });
+      await sendRequest(currentUserId, targetUserId);
       
       Alert.alert('✅ Solicitud enviada', 'Tu solicitud ha sido enviada con éxito.');
       
       await fetchUsers();
     } catch (error) {
       console.error('❌ Error enviando solicitud:', error);
-      Alert.alert('Error', 'No se pudo enviar la solicitud.');
+      if ((error as { code?: string })?.code === '23505') {
+        Alert.alert('Solicitud pendiente', 'Ya enviaste una solicitud a este usuario.');
+      } else {
+        Alert.alert('Error', 'No se pudo enviar la solicitud.');
+      }
     } finally {
       setLoadingFor(targetUserId, false);
     }
@@ -83,23 +82,12 @@ export default function friendRequest() {
 
   // Aceptar solicitud
   const acceptFriendRequest = async (requestingUserId: string) => {
-    if (!currentUser) return;
+    if (!currentUserId) return;
     
     setLoadingFor(requestingUserId, true);
     
     try {
-      const userRef = doc(firestore, 'users', currentUser.uid);
-      
-      await updateDoc(userRef, {
-        friends: arrayUnion(requestingUserId),
-        pendingRequests: arrayRemove(requestingUserId),
-      });
-      
-      // También agregar a su lista de amigos
-      const requestingUserRef = doc(firestore, 'users', requestingUserId);
-      await updateDoc(requestingUserRef, {
-        friends: arrayUnion(currentUser.uid),
-      });
+      await acceptRequest(currentUserId, requestingUserId);
       
       Alert.alert('✅ Solicitud aceptada', '¡Ahora son amigos!');
       await fetchUsers();
@@ -113,16 +101,12 @@ export default function friendRequest() {
 
   // Rechazar solicitud
   const rejectFriendRequest = async (requestingUserId: string) => {
-    if (!currentUser) return;
+    if (!currentUserId) return;
     
     setLoadingFor(requestingUserId, true);
     
     try {
-      const userRef = doc(firestore, 'users', currentUser.uid);
-      
-      await updateDoc(userRef, {
-        pendingRequests: arrayRemove(requestingUserId),
-      });
+      await rejectRequest(currentUserId, requestingUserId);
       
       Alert.alert('✅ Solicitud rechazada');
       await fetchUsers();
@@ -136,28 +120,25 @@ export default function friendRequest() {
 
   // Obtener usuarios
   const fetchUsers = async () => {
-    if (!currentUser) return;
+    if (!currentUserId) return;
     
     try {
-      const currentSnap = await getDocs(collection(firestore, 'users'));
-      const userList = currentSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as UserData));
-      
-      const currentUserData = userList.find((u) => u.id === currentUser.uid);
-      const friendList = currentUserData?.friends || [];
-      const pendingList = currentUserData?.pendingRequests || [];
-      
-      const filtered = userList.filter((u) => u.id !== currentUser.uid);
-      setUsers(filtered);
-      setFriends(friendList);
-      setPendingRequests(pendingList);
+      const overview = await getFriendSearchOverview(currentUserId);
+      setUsers(overview.users);
+      setFriends(overview.friends);
+      setPendingRequests(overview.pendingRequests);
     } catch (error) {
       console.error('Error al obtener usuarios:', error);
     }
   };
 
   useEffect(() => {
-    fetchUsers();
+    getCurrentUser().then(user => setCurrentUserId(user?.id ?? null));
   }, []);
+
+  useEffect(() => {
+    if (currentUserId) fetchUsers();
+  }, [currentUserId]);
 
   const renderItem = ({ item }: { item: UserData }) => {
     const isFriend = friends.includes(item.id);

@@ -1,16 +1,5 @@
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc,
-  doc,
-  GeoPoint,
-  serverTimestamp 
-} from 'firebase/firestore';
-import { firestore } from './firebase/config';
+import { supabase } from './supabase/client';
+import type { Tables } from '../types/supabase';
 import * as Location from 'expo-location';
 
 // Interfaces
@@ -61,44 +50,39 @@ export const getCurrentLocation = async (): Promise<Location.LocationObject | nu
   }
 };
 
-// Guardar la ubicación actual del usuario en Firestore
+// Guardar la ubicación actual del usuario.
+// Pendiente: el esquema de Supabase aún no tiene tabla para ubicaciones de usuario
+// (antes `userLocations`), así que no se persiste. Ningún llamador la usa hoy.
 export const saveUserLocation = async (
-  userId: string, 
-  coordinates: { latitude: number; longitude: number }
+  _userId: string,
+  _coordinates: { latitude: number; longitude: number }
 ): Promise<string | null> => {
-  try {
-    // Verificar si ya existe una ubicación para este usuario
-    const userLocationsQuery = query(
-      collection(firestore, 'userLocations'),
-      where('userId', '==', userId)
-    );
-    
-    const snapshot = await getDocs(userLocationsQuery);
-    
-    if (!snapshot.empty) {
-      // Actualizar ubicación existente
-      const docRef = snapshot.docs[0].ref;
-      await updateDoc(docRef, {
-        coordinates,
-        lastUpdated: serverTimestamp()
-      });
-      
-      return snapshot.docs[0].id;
-    }
-    
-    // Crear nueva ubicación
-    const newLocation: UserLocation = {
-      userId,
-      coordinates,
-      lastUpdated: serverTimestamp()
-    };
-    
-    const docRef = await addDoc(collection(firestore, 'userLocations'), newLocation);
-    return docRef.id;
-  } catch (error) {
-    console.error('Error guardando ubicación del usuario:', error);
-    return null;
-  }
+  console.warn('saveUserLocation: sin tabla en Supabase, no se guardó la ubicación');
+  return null;
+};
+
+const MAP_LOCATION_TYPES = ['university', 'restaurant', 'housing', 'entertainment', 'transport', 'other'] as const;
+
+type LocationRow = Tables<'map_locations'> & {
+  map_location_ratings: { stars: number }[];
+};
+
+const toLocation = (row: LocationRow): MapLocation => {
+  const stars = row.map_location_ratings.map((r) => r.stars);
+  const known = row.types.find((t): t is MapLocation['type'] =>
+    (MAP_LOCATION_TYPES as readonly string[]).includes(t)
+  );
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    coordinates: { latitude: row.latitude, longitude: row.longitude },
+    type: known ?? 'other',
+    rating: stars.length ? stars.reduce((a, b) => a + b, 0) / stars.length : undefined,
+    imageUrl: row.image_urls[0],
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+  };
 };
 
 // Obtener todas las ubicaciones de interés
@@ -106,68 +90,72 @@ export const getMapLocations = async (
   type?: string
 ): Promise<MapLocation[]> => {
   try {
-    let locationsQuery;
-    
-    if (type && type !== 'all') {
-      locationsQuery = query(
-        collection(firestore, 'mapLocations'),
-        where('type', '==', type)
-      );
-    } else {
-      locationsQuery = collection(firestore, 'mapLocations');
-    }
-    
-    const snapshot = await getDocs(locationsQuery);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as MapLocation[];
+    let q = supabase
+      .from('map_locations')
+      .select('*, map_location_ratings(stars)')
+      .order('created_at', { ascending: false });
+    if (type && type !== 'all') q = q.contains('types', [type]);
+
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data as unknown as LocationRow[]).map(toLocation);
   } catch (error) {
     console.error('Error obteniendo ubicaciones del mapa:', error);
     return [];
   }
 };
 
-// Agregar una nueva ubicación al mapa
+// Agregar una nueva ubicación al mapa.
+// `address` no tiene columna en el esquema y no se guarda.
 export const addMapLocation = async (
   location: Omit<MapLocation, 'id' | 'createdAt'>,
   userId: string
 ): Promise<string | null> => {
   try {
-    const newLocation = {
-      ...location,
-      createdBy: userId,
-      createdAt: serverTimestamp()
-    };
-    
-    const docRef = await addDoc(collection(firestore, 'mapLocations'), newLocation);
-    return docRef.id;
+    const { data, error } = await supabase
+      .from('map_locations')
+      .insert({
+        created_by: userId,
+        title: location.title,
+        description: location.description ?? '',
+        latitude: location.coordinates.latitude,
+        longitude: location.coordinates.longitude,
+        types: [location.type],
+        image_urls: location.imageUrl ? [location.imageUrl] : [],
+      })
+      .select('id')
+      .single();
+    if (error) throw error;
+
+    if (location.rating) {
+      const { error: ratingError } = await supabase
+        .from('map_location_ratings')
+        .insert({ location_id: data.id, user_id: userId, stars: Math.round(location.rating) });
+      if (ratingError) console.error('Error guardando calificación:', ratingError);
+    }
+    return data.id;
   } catch (error) {
     console.error('Error agregando ubicación al mapa:', error);
     return null;
   }
 };
 
-// Eliminar una ubicación del mapa
+// Eliminar una ubicación del mapa (RLS solo permite al autor o a un admin)
 export const deleteMapLocation = async (
   locationId: string,
   userId: string
 ): Promise<boolean> => {
   try {
-    // Verificar que el usuario es el creador
-    const locationDoc = await getDocs(
-      query(
-        collection(firestore, 'mapLocations'),
-        where('createdBy', '==', userId)
-      )
-    );
-    
-    if (locationDoc.empty) {
+    const { data, error } = await supabase
+      .from('map_locations')
+      .delete()
+      .eq('id', locationId)
+      .eq('created_by', userId)
+      .select('id');
+    if (error) throw error;
+    if (!data || data.length === 0) {
       throw new Error('No tienes permisos para eliminar esta ubicación');
     }
-    
-    await deleteDoc(doc(firestore, 'mapLocations', locationId));
     return true;
   } catch (error) {
     console.error('Error eliminando ubicación del mapa:', error);

@@ -1,23 +1,5 @@
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  orderBy, 
-  serverTimestamp as firestoreTimestamp,
-  deleteField,
-  where
-} from 'firebase/firestore';
-import { firestore } from './firebase/config';
-import { uploadImageToFirebase } from './imageService';
-import { createNotification } from './notificationService';
-
-// Constantes
-const POSTS_COLLECTION = 'feedPosts';
+import { supabase } from './supabase/client';
+import { uploadImageToSupabase } from './imageService';
 
 // Interfaces
 export interface Post {
@@ -44,163 +26,145 @@ export interface PostInput {
   userId: string;
 }
 
-// Obtener todas las publicaciones ordenadas por fecha
-export const getAllPosts = async (): Promise<Post[]> => {
-  try {
-    const q = query(collection(firestore, POSTS_COLLECTION), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Post));
-  } catch (error) {
-    console.error('Error getting posts:', error);
-    throw error;
-  }
+const FEED_LIMIT = 100;
+
+// Post con su autor y sus likes en una sola consulta.
+const POST_SELECT =
+  'id, user_id, image_url, caption, created_at, author:profiles!posts_user_id_fkey!inner(id, name, photo_url, university), post_likes(user_id)';
+
+type PostRow = {
+  id: string;
+  user_id: string;
+  image_url: string | null;
+  caption: string;
+  created_at: string;
+  author: { id: string; name: string; photo_url: string | null; university: string | null };
+  post_likes: { user_id: string }[];
 };
 
-// Obtener publicaciones con datos de usuario
+const toPost = (row: PostRow): Post => {
+  const likes = Object.fromEntries(row.post_likes.map((like) => [like.user_id, true]));
+  return {
+    id: row.id,
+    image: row.image_url ?? '',
+    content: row.caption,
+    caption: row.caption,
+    createdAt: row.created_at,
+    userId: row.user_id,
+    user: {
+      id: row.author.id,
+      name: row.author.name || 'Usuario sin nombre',
+      image: row.author.photo_url ? { uri: row.author.photo_url } : require('../assets/images/img7.jpg'),
+      university: row.author.university ?? undefined,
+    },
+    likes,
+    likeCount: row.post_likes.length,
+  };
+};
+
+const runPostQuery = async (
+  build: (q: ReturnType<typeof basePostQuery>) => ReturnType<typeof basePostQuery>
+): Promise<Post[]> => {
+  const { data, error } = await build(basePostQuery());
+  if (error) throw error;
+  return (data as unknown as PostRow[]).map(toPost);
+};
+
+const basePostQuery = () =>
+  supabase.from('posts').select(POST_SELECT).order('created_at', { ascending: false }).limit(FEED_LIMIT);
+
+// Obtener publicaciones con datos de usuario (las más recientes)
 export const getPostsWithUserData = async (): Promise<Post[]> => {
   try {
-    const posts = await getAllPosts();
-    
-    const postsWithUserData = await Promise.all(posts.map(async (post) => {
-      if (!post.userId) return post;
-      
-      try {
-        const userDoc = await getDoc(doc(firestore, 'users', post.userId));
-        
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          
-          return {
-            ...post,
-            user: {
-              id: post.userId,
-              name: userData.name || 'Usuario sin nombre',
-              image: userData.photo 
-                ? (typeof userData.photo === 'string' 
-                  ? { uri: userData.photo } 
-                  : userData.photo)
-                : require('../assets/images/img7.jpg'),
-              university: userData.university
-            },
-            likes: post.likes || {},
-            likeCount: post.likes ? Object.keys(post.likes).length : 0
-          };
-        }
-      } catch (error) {
-        console.error(`Error getting user data for post ${post.id}:`, error);
-      }
-      
-      return post;
-    }));
-    
-    return postsWithUserData;
+    return await runPostQuery((q) => q);
   } catch (error) {
     console.error('Error getting posts with user data:', error);
     throw error;
   }
 };
 
-// Filtrar publicaciones por universidad
+export const getAllPosts = getPostsWithUserData;
+
+// Publicaciones de autores de una universidad
 export const getPostsByUniversity = async (university: string): Promise<Post[]> => {
   try {
-    const allPosts = await getPostsWithUserData();
-    return allPosts.filter(post => post.user?.university === university);
+    return await runPostQuery((q) => q.eq('author.university', university));
   } catch (error) {
     console.error(`Error getting posts for university ${university}:`, error);
     throw error;
   }
 };
 
-// Filtrar publicaciones por amigos
+// Publicaciones de una lista de usuarios (amigos)
 export const getPostsByFriends = async (friendIds: string[]): Promise<Post[]> => {
+  if (!friendIds.length) return [];
   try {
-    if (!friendIds.length) return [];
-    
-    const allPosts = await getPostsWithUserData();
-    return allPosts.filter(post => friendIds.includes(post.userId));
+    return await runPostQuery((q) => q.in('user_id', friendIds));
   } catch (error) {
     console.error('Error getting friends posts:', error);
     throw error;
   }
 };
 
-// Crear una nueva publicación
-export const createPost = async (postData: PostInput, imageUri: string): Promise<string> => {
+// Publicaciones de un usuario
+export const getPostsByUser = async (userId: string): Promise<Post[]> => {
   try {
-    // Subir imagen a Firebase Storage
-    const imageUrl = await uploadImageToFirebase(
-      imageUri, 
-      `feedPosts/${Date.now()}_${postData.userId}.jpg`,
-      { width: 1200, quality: 0.8 }
-    );
-    
-    // Crear post en Firestore
-    const newPost = {
-      image: imageUrl,
-      caption: postData.caption,
-      userId: postData.userId,
-      createdAt: firestoreTimestamp(),
-      likes: {}
-    };
-    
-    const docRef = await addDoc(collection(firestore, POSTS_COLLECTION), newPost);
-    return docRef.id;
+    return await runPostQuery((q) => q.eq('user_id', userId));
   } catch (error) {
-    console.error('Error creating post:', error);
+    console.error(`Error getting posts for user ${userId}:`, error);
     throw error;
   }
 };
 
-// Dar like a una publicación
+// Subir la imagen de una publicación a la carpeta del usuario
+export const uploadPostImage = async (imageUri: string, userId: string): Promise<string> => {
+  const path = `${userId}/${Date.now()}.jpg`;
+  return await uploadImageToSupabase(imageUri, 'post-images', path, { width: 1200, quality: 0.8 });
+};
+
+// Guardar una publicación con una imagen ya subida
+export const createPostRecord = async (
+  userId: string,
+  caption: string,
+  imageUrl: string
+): Promise<string> => {
+  const { data, error } = await supabase
+    .from('posts')
+    .insert({ user_id: userId, caption, image_url: imageUrl })
+    .select('id')
+    .single();
+  if (error) {
+    console.error('Error creating post:', error);
+    throw error;
+  }
+  return data.id;
+};
+
+// Crear una nueva publicación (sube la imagen y guarda el post)
+export const createPost = async (postData: PostInput, imageUri: string): Promise<string> => {
+  const imageUrl = await uploadPostImage(imageUri, postData.userId);
+  return await createPostRecord(postData.userId, postData.caption, imageUrl);
+};
+
+// Dar o quitar like. La notificación al autor la crea un trigger en la base de datos.
 export const togglePostLike = async (
-  postId: string, 
-  userId: string, 
-  isLiked: boolean,
-  postOwnerId?: string,
-  currentUserData?: any
+  postId: string,
+  userId: string,
+  isLiked: boolean
 ): Promise<void> => {
-  try {
-    const postRef = doc(firestore, POSTS_COLLECTION, postId);
-    
-    if (isLiked) {
-      // Quitar like
-      await updateDoc(postRef, {
-        [`likes.${userId}`]: deleteField()
-      });
-    } else {
-      // Añadir like
-      await updateDoc(postRef, {
-        [`likes.${userId}`]: true
-      });
-      
-      // Crear notificación si el post no es del usuario que da like
-      if (postOwnerId && postOwnerId !== userId && currentUserData) {
-        await createNotification({
-          type: 'post_like',
-          fromUserId: userId,
-          fromUserName: currentUserData.name || 'Usuario',
-          fromUserPhoto: currentUserData.photo || '',
-          toUserId: postOwnerId,
-          contentId: postId,
-          contentText: ''
-        });
-      }
-    }
-  } catch (error) {
+  const { error } = isLiked
+    ? await supabase.from('post_likes').delete().eq('post_id', postId).eq('user_id', userId)
+    : await supabase.from('post_likes').insert({ post_id: postId, user_id: userId });
+  if (error) {
     console.error(`Error toggling like for post ${postId}:`, error);
     throw error;
   }
 };
 
-// Eliminar una publicación
+// Eliminar una publicación (RLS: solo el autor o un admin)
 export const deletePost = async (postId: string): Promise<void> => {
-  try {
-    await deleteDoc(doc(firestore, POSTS_COLLECTION, postId));
-  } catch (error) {
+  const { error } = await supabase.from('posts').delete().eq('id', postId);
+  if (error) {
     console.error(`Error deleting post ${postId}:`, error);
     throw error;
   }

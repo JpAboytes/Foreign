@@ -4,16 +4,10 @@ import {
   StyleSheet, Alert, ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
-import { firestore } from '../../../firebase';
+import { listAdminItems, type AdminMentor } from '../../../services/adminService';
 import { useRouter } from 'expo-router';
 
-interface User {
-  id: string;
-  name?: string;
-  isMentor?: boolean;
-  areas?: string[];
-}
+type User = AdminMentor;
 
 export default function GestionMentores() {
   const [mentors, setMentors] = useState<User[]>([]);
@@ -22,10 +16,14 @@ export default function GestionMentores() {
 
   const fetchMentors = async () => {
     setLoading(true);
-    const q = query(collection(firestore, 'users'), where('isMentor', '==', true));
-    const snap = await getDocs(q);
-    setMentors(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })));
-    setLoading(false);
+    try {
+      setMentors((await listAdminItems('mentors')) as AdminMentor[]);
+    } catch (error) {
+      console.error('Error al cargar mentores:', error);
+      Alert.alert('Error', 'No se pudieron cargar los mentores');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchMentors(); }, []);

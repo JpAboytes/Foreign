@@ -5,8 +5,10 @@ import {
   deleteComment,
   Comment
 } from '../services/commentService';
+import { UserProfile } from '../services/userService';
 
-export function useComments(postId: string | null, currentUser: any) {
+// currentUser es siempre el usuario de la sesión (no el perfil que se está viendo).
+export function useComments(postId: string | null, currentUser: UserProfile | null) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,8 @@ export function useComments(postId: string | null, currentUser: any) {
   };
 
   // Añadir comentario
-  const handleAddComment = async (postOwnerId?: string) => {
+  // La notificación al autor del post la crea un trigger en la base de datos.
+  const handleAddComment = async (_postOwnerId?: string) => {
     if (!newComment.trim() || !postId || !currentUser?.uid) return;
     
     try {
@@ -45,11 +48,11 @@ export function useComments(postId: string | null, currentUser: any) {
         user: {
           id: currentUser.uid,
           name: currentUser.name || 'Usuario',
-          image: currentUser.photo || require('../assets/images/img7.jpg')
+          image: currentUser.photo ? { uri: currentUser.photo } : require('../assets/images/img7.jpg')
         }
       };
       
-      const commentId = await addComment(postId, commentData, postOwnerId);
+      const commentId = await addComment(postId, commentData);
       
       // Actualizar UI localmente
       setComments(prev => [{

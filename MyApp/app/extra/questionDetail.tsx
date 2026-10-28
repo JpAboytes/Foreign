@@ -1,35 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Image, ActivityIndicator, RefreshControl } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { addDoc, collection, doc, getDoc, onSnapshot, query, orderBy, Timestamp, updateDoc, increment, getDocs } from 'firebase/firestore';
-import { firestore } from '../../firebase';
-import { getAuth } from 'firebase/auth';
 import { useUser } from '../../context/UserContext';
-import { createNotification } from '../../services/notificationService';
+import { ForumAnswer, ForumQuestion, createAnswer, getAnswers, getQuestionDetail } from '../../services/forumService';
 import { formatTimeAgo } from '../../utils/formatters';
-
-interface ForumUser {
-  id: string;
-  name: string;
-  photo: string;
-}
-
-interface ForumQuestion {
-  id: string;
-  title: string;
-  timestamp: any;
-  user: ForumUser;
-}
-
-interface ForumAnswer {
-  id: string;
-  content: string;
-  timestamp: any;
-  user: ForumUser;
-  likes: number;
-  commentCount: number;
-}
 
 export default function QuestionDetailScreen() {
   const router = useRouter();
@@ -40,123 +15,51 @@ export default function QuestionDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [questionLoading, setQuestionLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const auth = getAuth();
-  const user = auth.currentUser;
-  const { userProfile } = useUser();
-  
+  const { user } = useUser();
+
+  const loadAnswers = useCallback(async () => {
+    if (!questionId) return;
+    try {
+      setAnswers(await getAnswers(questionId as string, user?.id));
+    } catch (error) {
+      console.error('Error al obtener respuestas:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [questionId, user?.id]);
+
   // Obtener la pregunta
   useEffect(() => {
     if (!questionId) return;
-    
+
     setQuestionLoading(true);
-    const fetchQuestion = async () => {
-      try {
-        const questionDoc = await getDoc(doc(firestore, 'forumQuestions', questionId as string));
-        if (questionDoc.exists()) {
-          setQuestion({ id: questionDoc.id, ...questionDoc.data() } as ForumQuestion);
-        }
-      } catch (error) {
-        console.error('Error al obtener pregunta:', error);
-      } finally {
-        setQuestionLoading(false);
-      }
-    };
-    
-    fetchQuestion();
+    getQuestionDetail(questionId as string)
+      .then(setQuestion)
+      .catch((error) => console.error('Error al obtener pregunta:', error))
+      .finally(() => setQuestionLoading(false));
   }, [questionId]);
-  
-  // Obtener las respuestas
-  useEffect(() => {
-    if (!questionId) return;
-    
-    const q = query(
-      collection(firestore, 'forumQuestions', questionId as string, 'answers'),
-      orderBy('timestamp', 'desc')
-    );
-    
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      setLoading(true);
-      
-      // Procesar cada respuesta
-      const answersPromises = snapshot.docs.map(async (doc) => {
-        const answerData = { id: doc.id, ...doc.data() } as ForumAnswer;
-        
-        // Obtener contador de comentarios
-        try {
-          const commentsCollection = collection(firestore, 'forumQuestions', 
-            questionId as string, 'answers', doc.id, 'comments');
-          const commentsSnapshot = await getDocs(commentsCollection); // Cambia getDoc por getDocs
-          answerData.commentCount = commentsSnapshot.size; // Ahora puedes acceder a .size
-        } catch (e) {
-          answerData.commentCount = 0;
-        }
-        
-        return answerData;
-      });
-      
-      const loadedAnswers = await Promise.all(answersPromises);
-      setAnswers(loadedAnswers);
-      setLoading(false);
-      setRefreshing(false);
-    });
-    
-    return () => unsubscribe();
-  }, [questionId]);
+
+  // Obtener las respuestas (también al volver del detalle de una respuesta)
+  useFocusEffect(
+    useCallback(() => {
+      loadAnswers();
+    }, [loadAnswers])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
-    // Las recargas se manejan con el onSnapshot
+    loadAnswers();
   };
 
+  // La notificación al autor de la pregunta la crea un trigger en la base de datos.
   const sendAnswer = async () => {
     if (!newAnswer.trim() || !user || !questionId) return;
-    
+
     try {
-      const answer = {
-        content: newAnswer.trim(),
-        timestamp: Timestamp.now(),
-        user: {
-          id: user.uid,
-          name: userProfile?.name || user.displayName || 'Usuario sin nombre',
-          photo: userProfile?.photo || '',
-        },
-        likes: 0,
-        commentCount: 0,
-      };
-      
-      // Añadir la respuesta
-      await addDoc(
-        collection(firestore, 'forumQuestions', questionId as string, 'answers'), 
-        answer
-      );
-      
-      // Incrementar el contador de respuestas en la pregunta
-      await updateDoc(doc(firestore, 'forumQuestions', questionId as string), {
-        answerCount: increment(1)
-      });
-      
+      await createAnswer(questionId as string, newAnswer, user.id);
       setNewAnswer('');
-
-      // Al agregar un comentario:
-
-      if (question && user && question.user.id) {  // Cambiar question.userId por question.user.id
-        try {
-          await createNotification({
-            type: 'forum_question_comment',
-            fromUserId: String(user.uid),
-            fromUserName: userProfile?.name || user?.displayName || 'Usuario',
-            fromUserPhoto: userProfile?.photo || '',
-            toUserId: String(question.user.id), // Cambiar question.userId por question.user.id
-            contentId: String(questionId),
-            contentText: newAnswer.trim().substring(0, 100),
-            relatedContentId: String(questionId)
-          });
-          console.log("Notificación de comentario enviada");
-        } catch (err) {
-          console.error("Error al crear notificación de comentario:", err);
-        }
-      }
-
+      await loadAnswers();
     } catch (error) {
       console.error('Error al enviar respuesta:', error);
     }

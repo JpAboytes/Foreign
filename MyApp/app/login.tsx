@@ -17,9 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import MaxWidthContainer from '../components/MaxWidthContainer';
 import LoginForm from '../components/auth/LoginForm';
 import SignupForm from '../components/auth/SignupForm';
-import { GOOGLE_CONFIG } from '../services/firebase/auth';
+import { GOOGLE_CONFIG, isAppleSignInAvailable } from '../services/auth';
 import { useAuth } from '../hooks/useAuth';
-import { uploadProfileImage } from '../services/imageService';
 import { UserProfile } from '../services/userService';
 
 // Cierra el flujo OAuth cuando regresas a la app
@@ -37,8 +36,13 @@ export default function LoginScreen() {
   const router = useRouter();
   
   // Config para Google Auth
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    redirectUri: GOOGLE_CONFIG.redirectUri,
+  const [appleEnabled, setAppleEnabled] = useState(false);
+
+  useEffect(() => {
+    isAppleSignInAvailable().then(setAppleEnabled);
+  }, []);
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: GOOGLE_CONFIG.webClientId,
     iosClientId: GOOGLE_CONFIG.iosClientId,
     androidClientId: GOOGLE_CONFIG.androidClientId,
@@ -50,7 +54,7 @@ export default function LoginScreen() {
     if (response?.type === 'success') {
       const { id_token } = response.params;
       if (id_token) {
-        authActions.loginWithGoogle(id_token);
+        authActions.loginWithGoogle(id_token, request?.nonce);
       }
     }
   }, [response]);
@@ -60,9 +64,9 @@ export default function LoginScreen() {
     await authActions.login(email, password);
   };
   
-  // Manejo de inicio de sesión anónimo
-  const handleAnonymousLogin = async () => {
-    await authActions.loginAnonymously();
+  // Manejo de inicio de sesión con Apple
+  const handleAppleLogin = async () => {
+    await authActions.loginWithApple();
   };
   
   // Manejo de inicio de sesión con Google
@@ -77,15 +81,7 @@ export default function LoginScreen() {
     profileData: Partial<UserProfile>
   ) => {
     try {
-      // Si hay imagen, subirla primero
-      if (profileData.photo) {
-        // Crear un ID temporal para la imagen
-        const tempId = Date.now().toString();
-        const photoURL = await uploadProfileImage(profileData.photo, tempId);
-        profileData.photo = photoURL;
-      }
-      
-      // Registrar usuario
+      // La foto se sube después de crear la cuenta, en la carpeta del usuario.
       await authActions.signup(email, password, profileData);
     } catch (error) {
       console.error('Error en registro:', error);
@@ -138,16 +134,19 @@ export default function LoginScreen() {
                 <LoginForm 
                   onLogin={handleEmailLogin}
                   onGoogleLogin={handleGoogleLogin}
-                  onAnonymousLogin={handleAnonymousLogin}
+                  onAppleLogin={handleAppleLogin}
                   isLoading={authState.isLoading}
-                  googleEnabled={!!request}
+                  googleEnabled={!!request && !!GOOGLE_CONFIG.webClientId}
+                  appleEnabled={appleEnabled}
                 />
               ) : (
                 <SignupForm 
                   onSignup={handleSignup}
                   onGoogleSignup={handleGoogleLogin}
+                  onAppleSignup={handleAppleLogin}
                   isLoading={authState.isLoading}
-                  googleEnabled={!!request}
+                  googleEnabled={!!request && !!GOOGLE_CONFIG.webClientId}
+                  appleEnabled={appleEnabled}
                   universities={UNIVERSITIES}
                   interests={INTERESTS}
                 />

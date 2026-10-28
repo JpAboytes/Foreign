@@ -12,9 +12,7 @@ import {
   Dimensions
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { getAuth } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { firestore } from '../../../services/firebase/config';
+import { useUser } from '../../../context/UserContext';
 import MaxWidthContainer from '../../../components/MaxWidthContainer';
 import FriendsSlider from '../../../components/feed/FriendsSlider';
 import PostDetailModal from '../../../components/feed/PostDetailModal';
@@ -27,8 +25,8 @@ const numColumns = Platform.OS === 'web' ? 4 : 2;
 
 export default function FeedScreen() {
   const router = useRouter();
-  const [currentUserData, setCurrentUserData] = useState<any>(null);
-  const [currentUserId, setCurrentUserId] = useState('');
+  const { user, userProfile: currentUserData } = useUser();
+  const currentUserId = user?.id ?? '';
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   // Custom hooks para posts y comentarios
@@ -53,24 +51,7 @@ export default function FeedScreen() {
     handleAddComment
   } = useComments(selectedPost?.id || null, currentUserData);
 
-  // Cargar datos del usuario actual
-  useEffect(() => {
-    const fetchCurrentUserData = async () => {
-      const user = getAuth().currentUser;
   
-      if (user) {
-        setCurrentUserId(user.uid);
-  
-        const userDoc = await getDoc(doc(firestore, 'users', user.uid));
-  
-        if (userDoc.exists()) {
-          setCurrentUserData({...userDoc.data(), uid: user.uid});
-        }
-      }
-    };
-  
-    fetchCurrentUserData();
-  }, []);
 
   // Manejar teclado
   useEffect(() => {

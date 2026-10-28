@@ -9,6 +9,7 @@ import {
   ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { Picker } from '@react-native-picker/picker';
 import ImagePicker from './ImagePicker';
 import { UserProfile } from '../../services/userService';
@@ -16,8 +17,10 @@ import { UserProfile } from '../../services/userService';
 interface SignupFormProps {
   onSignup: (email: string, password: string, profileData: Partial<UserProfile>) => Promise<void>;
   onGoogleSignup: () => void;
+  onAppleSignup: () => Promise<void>;
   isLoading: boolean;
   googleEnabled: boolean;
+  appleEnabled: boolean;
   universities: string[];
   interests: string[];
 }
@@ -25,8 +28,10 @@ interface SignupFormProps {
 export default function SignupForm({
   onSignup,
   onGoogleSignup,
+  onAppleSignup,
   isLoading,
   googleEnabled,
+  appleEnabled,
   universities,
   interests
 }: SignupFormProps) {
@@ -206,6 +211,16 @@ export default function SignupForm({
               <Text style={styles.buttonText}>Registrarse con Google</Text>
             </TouchableOpacity>
           )}
+
+          {appleEnabled && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+              cornerRadius={8}
+              style={styles.appleButton}
+              onPress={onAppleSignup}
+            />
+          )}
         </>
       )}
     </ScrollView>
@@ -213,6 +228,11 @@ export default function SignupForm({
 }
 
 const styles = StyleSheet.create({
+  appleButton: {
+    width: '100%',
+    height: 48,
+    marginTop: 12,
+  },
   formContent: {
     padding: 20,
   },

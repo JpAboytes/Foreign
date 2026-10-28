@@ -16,16 +16,14 @@ import {
   Dimensions
 } from 'react-native';
 import * as Location from 'expo-location';
-import { firestore } from '../../../firebase';
-import { getAuth } from 'firebase/auth';
-import { doc, getDoc, collection, getDocs, setDoc, query, where, serverTimestamp, GeoPoint } from 'firebase/firestore';
-import { createNotification } from '../../../services/notificationService';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../../../firebase';
+import { getCurrentUser } from '../../../services/auth';
+import { getUserProfile } from '../../../services/userService';
+import { getFriendIds } from '../../../services/profileService';
+import { createLocation, getAllLocations } from '../../../services/mapService';
+import { acceptRaiteRequest, cancelRaiteRequest as cancelRaiteRequestService, getRaiteRequest, sendRaiteRequest as sendRaiteRequestService, subscribeToRaitesForMe } from '../../../services/raiteService';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
-import { database } from '../../../firebase'; 
-import { set, ref as DatabaseRef, remove, onValue } from 'firebase/database';
+
 import MapView, { Marker, LatLng, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useRaite } from '../../../context/RaiteContext';
@@ -267,53 +265,26 @@ export default function MapScreen() {
       const requestId = params.showRaiteRequest as string;
       const fromUserId = params.fromUserId as string;
       
-      // Buscar la solicitud de raite en Realtime Database
-      const requestRef = DatabaseRef(database, `raiteRequests/${fromUserId}`);
-      onValue(requestRef, (snapshot) => {
-        if (snapshot.exists()) {
-          const raiteData = snapshot.val();
-          if (raiteData && raiteData.status === 'pending') {
-            // Obtener datos del usuario solicitante
-            getDoc(doc(firestore, 'users', fromUserId)).then(userDoc => {
-              if (userDoc.exists()) {
-                const userData = userDoc.data();
-                const userName = userData?.name || 'Usuario';
-                
-                // Mostrar modal con la solicitud
-                setSelectedFriendRaite({
-                  friendId: fromUserId,
-                  friendName: userName,
-                  to: raiteData.to
-                });
-                setRaiteAlertModalVisible(true);
-              }
+      // Buscar la solicitud de raite del amigo
+      getRaiteRequest(fromUserId)
+        .then((request) => {
+          if (request && request.status === 'pending') {
+            setSelectedFriendRaite({
+              friendId: request.requesterId,
+              friendName: request.requesterName,
+              to: request.to
             });
+            setRaiteAlertModalVisible(true);
           }
-        }
-      }, { onlyOnce: true });
+        })
+        .catch((error) => console.error('Error obteniendo solicitud de raite:', error));
     }
   }, [params]); // Nota que la dependencia cambia de router.params a params
 
-  //Subir imgs a storage
-  const uploadImages = async (uris: string[]) => {
-    const urls = [];
-    for (const uri of uris) {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const filename = `mapLocations/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-      const refStorage = ref(storage, filename);
-      await uploadBytes(refStorage, blob);
-      const downloadUrl = await getDownloadURL(refStorage);
-      urls.push(downloadUrl);
-    }
-    return urls;
-  };
- 
   const fetchPlaceOwner = async (userId: string) => {
     try {
-      const userDoc = await getDoc(doc(firestore, 'users', userId));
-      if (userDoc.exists()) {
-        const userInfo = userDoc.data();
+      const userInfo = await getUserProfile(userId);
+      if (userInfo) {
         const ownerData = {
           name: userInfo.name || 'Usuario sin nombre',
           photo: userInfo.photo
@@ -335,49 +306,30 @@ export default function MapScreen() {
   
   //auth y amigos
   useEffect(() => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-  
-    if (user) {
-      setCurrentUserId(user.uid);
-  
-      // Cargar amigos
-      const loadFriends = async () => {
-        const userRef = doc(firestore, 'users', user.uid);
-        const snapshot = await getDoc(userRef);
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          setFriendIds(data.friends || []);
-        }
-      };
-  
-      loadFriends();
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!user || cancelled) return;
+        setCurrentUserId(user.id);
+        const ids = await getFriendIds(user.id);
+        if (!cancelled) setFriendIds(ids);
+      } catch (error) {
+        console.error('❌ Error cargando usuario y amigos:', error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   //fetch locations
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const querySnapshot = await getDocs(collection(firestore, 'mapLocations'));
-        const loadedLocations = querySnapshot.docs
-          .map((doc) => doc.data())
-          .filter((loc) => 
-            loc.createdBy === currentUserId || friendIds.includes(loc.createdBy)
-          )
-          .map((loc) => ({
-            id: loc.locationId,
-            title: loc.title,
-            description: loc.description,
-            geoPoint: {
-              latitude: loc.geoPoint.latitude,
-              longitude: loc.geoPoint.longitude,
-            },
-            type: loc.type,
-            imageUrl: loc.imageUrl,
-            createdBy: loc.createdBy,
-            rating: loc.rating || [],
-          }));
+        const loadedLocations = (await getAllLocations()).filter(
+          (loc) => loc.createdBy === currentUserId || friendIds.includes(loc.createdBy)
+        );
         setLocations(loadedLocations);
       } catch (error) {
         console.error('❌ Error cargando lugares:', error);
@@ -405,31 +357,15 @@ export default function MapScreen() {
       return;
     }
   
-    let imageUrls: string[] = [];
-    if (selectedImages.length > 0) {
-      imageUrls = await uploadImages(selectedImages);
-    }
-  
-    const newId = Date.now().toString();
-    
-    const newMarker = {
-      locationId: newId,
-      title: manualMarkerName.trim(),
-      description: review.trim(),
-      rating: [{ userId: currentUserId, stars }],
-      geoPoint: new GeoPoint(
-        manualMarkerCoords.latitude,
-        manualMarkerCoords.longitude
-      ),
-      type: ['favoritos'],
-      imageUrl: imageUrls.length > 0 ? imageUrls[0] : '',
-      imageUrls,
-      createdBy: currentUserId,
-      createdAt: new Date(),
-    };
-  
     try {
-      await setDoc(doc(firestore, 'mapLocations', newId), newMarker);
+      await createLocation(currentUserId, {
+        title: manualMarkerName,
+        description: review,
+        coords: manualMarkerCoords,
+        types: ['favoritos'],
+        rating: stars,
+        images: selectedImages,
+      });
       Alert.alert('✅ Lugar guardado correctamente');
       // limpiar estados
       setManualMarkerName('');
@@ -449,23 +385,7 @@ export default function MapScreen() {
   //volver a fetchear ubis
   const fetchLocationsAgain = async () => {
     try {
-      const querySnapshot = await getDocs(collection(firestore, 'mapLocations'));
-      const loadedLocations = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: data.locationId,
-          title: data.title,
-          description: data.description,
-          geoPoint: {
-            latitude: data.geoPoint.latitude,
-            longitude: data.geoPoint.longitude,
-          },
-          type: data.type,
-          imageUrl: data.imageUrl,
-          createdBy: data.createdBy,
-          rating: data.rating || [],
-        };
-      });
+      const loadedLocations = await getAllLocations();
       setLocations(loadedLocations);
     } catch (error) {
       console.error('❌ Error recargando lugares:', error);
@@ -499,36 +419,8 @@ export default function MapScreen() {
     if (!userId || !userLocation || !selectedRaitePlace || selectedFriends.length === 0) return;
 
     try {
-      // Datos para la solicitud de raite en Realtime Database (tu código actual)
-      const raiteData = {
-        from: userLocation,
-        to: selectedRaitePlace,
-        timestamp: Date.now(),
-        status: 'pending',
-        selectedFriends, 
-      };
-      
-      // Guardar en Realtime Database
-      await set(DatabaseRef(database, `raiteRequests/${userId}`), raiteData);
-      
-      // Obtener datos del usuario actual para la notificación
-      const currentUserDoc = await getDoc(doc(firestore, 'users', userId));
-      const currentUserData = currentUserDoc.data();
-      const currentUserName = currentUserData?.name || 'Usuario';
-      const currentUserPhoto = currentUserData?.photo || '';
-      
-      // Crear notificación en Firestore para cada amigo seleccionado
-      for (const friendId of selectedFriends) {
-        await createNotification({
-          type: 'raite_request',
-          fromUserId: userId,
-          fromUserName: currentUserName,
-          fromUserPhoto: currentUserPhoto,
-          toUserId: friendId,
-          contentId: userId, // Usamos userId como contentId para identificar la solicitud
-          contentText: `${currentUserName} necesita un raite. ¡Toca aquí para responder!`
-        });
-      }
+      // Las notificaciones a cada amigo las crea un trigger en la base de datos.
+      await sendRaiteRequestService(userId, userLocation, selectedRaitePlace, selectedFriends);
       
       console.log('Notificaciones de raite enviadas a:', selectedFriends);
     } catch (error) {
@@ -540,56 +432,18 @@ export default function MapScreen() {
   const cancelRaiteRequestRealtime = async () => {
     const userId = currentUserId;
     if (!userId) return;
-    await remove(DatabaseRef(database, `raiteRequests/${userId}`));
+    await cancelRaiteRequestService(userId);
   };
 
-  //a ellos se les manda
+  // Solicitudes de raite que me mandan mis amigos (en tiempo real)
   useEffect(() => {
-    if (friendIds.length === 0) return;
-  
-    const unsubscribes = friendIds.map(friendId => {
-      const friendRef = DatabaseRef(database, `raiteRequests/${friendId}`);
-      return onValue(friendRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data && data.status === 'pending') {
-          console.log(`Tu amigo ${friendId} está pidiendo raite a:`, data.to);
-        }
-      });
+    if (!currentUserId) return;
+    return subscribeToRaitesForMe(currentUserId, (requests) => {
+      setFriendRaiteRequests(
+        requests.map((r) => ({ friendId: r.requesterId, friendName: r.requesterName, to: r.to }))
+      );
     });
-    return () => {
-      unsubscribes.forEach(unsub => unsub());
-    };
-  }, [friendIds]);
-
-  useEffect(() => {
-    if (friendIds.length === 0) return;
-  
-    const unsubscribes = friendIds.map(friendId => {
-      const friendRequestRef = DatabaseRef(database, `raiteRequests/${friendId}`);
-      return onValue(friendRequestRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data && data.status === 'pending') {
-          setFriendRaiteRequests(prev => {
-            const alreadyExists = prev.find(r => r.friendId === friendId);
-            if (alreadyExists) return prev;
-  
-            const friend = friends.find(f => f.id === friendId);
-            if (!friend) return prev;
-  
-            return [...prev, { friendId, friendName: friend.name, to: data.to }];
-          });
-        } else {
-          setFriendRaiteRequests(prev =>
-            prev.filter(r => r.friendId !== friendId)
-          );
-        }
-      });
-    });
-  
-    return () => {
-      unsubscribes.forEach(unsub => unsub());
-    };
-  }, [friendIds, friends]);
+  }, [currentUserId]);
   
   useEffect(() => {
     setHasActiveRaiteRequest(friendRaiteRequests.length > 0);
@@ -623,9 +477,8 @@ export default function MapScreen() {
         const friendsData: Friend[] = [];
   
         for (const friendId of friendIds) {
-          const friendDoc = await getDoc(doc(firestore, 'users', friendId));
-          if (friendDoc.exists()) {
-            const friendInfo = friendDoc.data();
+          const friendInfo = await getUserProfile(friendId);
+          if (friendInfo) {
             friendsData.push({
               id: friendId,
               name: friendInfo.name || 'Usuario sin nombre',
@@ -747,13 +600,7 @@ export default function MapScreen() {
     if (!selectedFriendRaite || !currentUserId) return;
   
     try {
-      // Actualizar el estado a 'accepted' en la solicitud del amigo
-      const friendRequestRef = DatabaseRef(database, `raiteRequests/${selectedFriendRaite.friendId}`);
-      await set(friendRequestRef, {
-        ...selectedFriendRaite,
-        status: 'accepted',
-        acceptedBy: currentUserId,
-      });
+      await acceptRaiteRequest(selectedFriendRaite.friendId);
   
       // Cerrar modal
       setRaiteAlertModalVisible(false);

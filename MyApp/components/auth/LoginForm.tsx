@@ -8,21 +8,24 @@ import {
   StyleSheet 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 
 interface LoginFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
   onGoogleLogin: () => void;
-  onAnonymousLogin: () => Promise<void>;
+  onAppleLogin: () => Promise<void>;
   isLoading: boolean;
   googleEnabled: boolean;
+  appleEnabled: boolean;
 }
 
 export default function LoginForm({
   onLogin,
   onGoogleLogin,
-  onAnonymousLogin,
+  onAppleLogin,
   isLoading,
-  googleEnabled
+  googleEnabled,
+  appleEnabled
 }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -78,10 +81,15 @@ export default function LoginForm({
             </TouchableOpacity>
           )}
           
-          <TouchableOpacity style={styles.secondaryButton} onPress={onAnonymousLogin}>
-            <Ionicons name="person-outline" size={20} color="#fff" style={styles.buttonIcon} />
-            <Text style={styles.buttonText}>Entrar como Invitado</Text>
-          </TouchableOpacity>
+          {appleEnabled && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+              cornerRadius={8}
+              style={styles.appleButton}
+              onPress={onAppleLogin}
+            />
+          )}
         </>
       )}
     </View>
@@ -89,6 +97,11 @@ export default function LoginForm({
 }
 
 const styles = StyleSheet.create({
+  appleButton: {
+    width: '100%',
+    height: 48,
+    marginTop: 12,
+  },
   formContent: {
     padding: 20,
   },

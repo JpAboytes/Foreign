@@ -1,16 +1,14 @@
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Drawer } from 'expo-router/drawer';
-import { Ionicons } from '@expo/vector-icons'; // Or your icon library
 import { View, Text, Pressable, StyleSheet, TouchableOpacity, Switch, Image } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import { DrawerActions } from "expo-router/react-navigation";
 import * as Haptics from 'expo-haptics';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Platform } from "react-native";
-import { doc, getDoc } from "firebase/firestore";
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth, firestore } from '../../firebase';
+import { useUser } from '../../context/UserContext';
+import { logout } from '../../services/auth';
 
 const CustomDrawerButton = () => {
   const navigation = useNavigation();
@@ -36,16 +34,9 @@ const customTitles: Record<string, string> = {
 };
 
 export default function DrawerLayout() {
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserId(user.uid);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+  const { user, userProfile } = useUser();
+  const userId = user?.id ?? null;
+  const isAdmin = !!userProfile?.isAdmin;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -60,51 +51,27 @@ export default function DrawerLayout() {
               </View>
             ),
           })}
-          drawerContent={() => <CustomDrawerContent userId={userId} />}
+          drawerContent={() => <CustomDrawerContent isAdmin={isAdmin} />}
         >
-          {/* ... existing screens ... */}
-          <Drawer.Screen
-            name="messages" // This will look for app/(drawer)/messages.tsx
-            options={{
-              drawerLabel: 'Mensajes',
-              title: 'Mis Mensajes',
-              drawerIcon: ({ size, color }) => (
-                <Ionicons name="chatbubbles-outline" size={size} color={color as string} />
-              ),
-            }}
-          />
-          {/* ... other existing screens ... */}
+          {/* Expo Router 58 solo muestra las pantallas declaradas en el layout. */}
+          <Drawer.Screen name="index" />
+          <Drawer.Screen name="(tabs)" />
+          <Drawer.Screen name="(adminTabs)" />
+          <Drawer.Screen name="settings/index" />
         </Drawer>
       )}
     </GestureHandlerRootView>
   );
 }
 
-function CustomDrawerContent({ userId }: { userId: string }) {
+function CustomDrawerContent({ isAdmin }: { isAdmin: boolean }) {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const ref = doc(firestore, "users", userId);
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          const data = snap.data();
-          setIsAdmin(data.isAdmin === true);
-        }
-      } catch (error) {
-        console.error("Error al obtener el rol del usuario:", error);
-      }
-    };
-    fetchUserRole();
-  }, [userId]);
 
   const handleLogout = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      await signOut(auth);
+      await logout();
       router.replace("/login");
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
@@ -118,7 +85,7 @@ function CustomDrawerContent({ userId }: { userId: string }) {
 
   const menuItems: { title: string; icon: keyof typeof MaterialCommunityIcons.glyphMap, path: string }[] = [
     { title: "User", icon: "account", path: '/(tabs)/profile' },
-    { title: "Messages", icon: "message", path: 'extra/messages' }, 
+    { title: "Messages", icon: "message", path: '/extra/messages' }, 
     { title: "Friend request", icon: "account-plus", path: '/extra/friendRequest' },
     { title: "Configuración", icon: "cog", path: '/settings' },  // Esta línea debe apuntar a '/settings'
   ];

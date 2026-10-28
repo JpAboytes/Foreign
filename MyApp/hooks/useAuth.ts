@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User } from 'firebase/auth';
-import * as AuthService from '../services/firebase/auth';
+import * as AuthService from '../services/auth';
 import * as UserService from '../services/userService';
+import { uploadProfileImage } from '../services/imageService';
 import { useRouter } from 'expo-router';
 import { Alert } from 'react-native';
 
 export interface AuthState {
-  user: User | null;
+  user: AuthService.AuthUser | null;
   userProfile: UserService.UserProfile | null;
   isLoading: boolean;
   isAdmin: boolean;
@@ -15,8 +15,8 @@ export interface AuthState {
 export interface AuthActions {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, profileData: Partial<UserService.UserProfile>) => Promise<void>;
-  loginWithGoogle: (idToken: string) => Promise<void>;
-  loginAnonymously: () => Promise<void>;
+  loginWithGoogle: (idToken: string, nonce?: string) => Promise<void>;
+  loginWithApple: () => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<UserService.UserProfile>) => Promise<void>;
 }
@@ -28,11 +28,11 @@ export function useAuth(): [AuthState, AuthActions] {
     isLoading: true,
     isAdmin: false,
   });
-  
+
   const router = useRouter();
-  
+
   // Función para actualizar el estado con datos del usuario
-  const refreshUserState = useCallback(async (user: User | null) => {
+  const refreshUserState = useCallback(async (user: AuthService.AuthUser | null) => {
     if (!user) {
       setState({
         user: null,
@@ -40,72 +40,80 @@ export function useAuth(): [AuthState, AuthActions] {
         isLoading: false,
         isAdmin: false,
       });
-      return;
+      return null;
     }
-    
+
     try {
-      // Obtener perfil de usuario
-      const userProfile = await UserService.getUserProfile(user.uid);
-      
+      const userProfile = await UserService.getUserProfile(user.id);
+      const profile = userProfile ? { ...userProfile, email: user.email ?? null } : null;
+
       setState({
         user,
-        userProfile,
+        userProfile: profile,
         isLoading: false,
-        isAdmin: !!userProfile?.isAdmin,
+        isAdmin: !!profile?.isAdmin,
       });
+      return profile;
     } catch (error) {
       console.error('Error refreshing user state:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
+      setState(prev => ({ ...prev, user, isLoading: false }));
+      return null;
     }
   }, []);
-  
+
   // Suscribirse a cambios de autenticación
   useEffect(() => {
     const unsubscribe = AuthService.subscribeToAuthChanges(async (user) => {
-      if (user) {
-        await refreshUserState(user);
-        
-        // Redirigir basado en el tipo de usuario
-        if (state.isAdmin) {
-          router.replace('/(drawer)/(adminTabs)');
-        } else if (!user.isAnonymous) {
-          router.replace('/(drawer)/(tabs)/feed');
-        }
+      const profile = await refreshUserState(user);
+      if (!user) return;
+
+      // Redirigir basado en el tipo de usuario
+      if (profile?.isAdmin) {
+        router.replace('/(drawer)/(adminTabs)');
       } else {
-        setState(prev => ({ ...prev, user: null, userProfile: null, isLoading: false }));
+        router.replace('/(drawer)/(tabs)/feed');
       }
     });
-    
+
     return () => unsubscribe();
-  }, [refreshUserState, router, state.isAdmin]);
-  
+  }, [refreshUserState, router]);
+
   // Acciones de autenticación
   const actions: AuthActions = {
     login: async (email: string, password: string) => {
       try {
         setState(prev => ({ ...prev, isLoading: true }));
-        const user = await AuthService.loginWithEmail(email, password);
-        await refreshUserState(user);
+        await AuthService.loginWithEmail(email, password);
+        // El listener de auth carga el perfil y redirige.
       } catch (error: any) {
         Alert.alert('Error en Login', error.message);
         setState(prev => ({ ...prev, isLoading: false }));
       }
     },
-    
+
     signup: async (email: string, password: string, profileData: Partial<UserService.UserProfile>) => {
       try {
         setState(prev => ({ ...prev, isLoading: true }));
-        const user = await AuthService.registerWithEmail(email, password, profileData.name);
-        
-        if (user) {
-          // Crear perfil en Firestore
-          await UserService.createOrUpdateUserProfile(user, profileData);
-          
-          // Si hay una imagen de perfil, actualizarla
-          if (profileData.photo) {
-            await AuthService.updateUserProfile(user, { photoURL: profileData.photo });
-          }
-          
+        const { user, needsEmailConfirmation } = await AuthService.registerWithEmail(email, password, {
+          name: profileData.name,
+          university: profileData.university,
+          origin: profileData.origin,
+          interests: profileData.interests,
+        });
+
+        if (needsEmailConfirmation) {
+          setState(prev => ({ ...prev, isLoading: false }));
+          Alert.alert(
+            'Confirma tu correo',
+            'Te enviamos un enlace de confirmación. Ábrelo y después inicia sesión. Podrás agregar tu foto desde tu perfil.'
+          );
+          return;
+        }
+
+        // Con sesión activa ya se puede subir la foto a la carpeta del usuario.
+        if (user && profileData.photo) {
+          const photoURL = await uploadProfileImage(profileData.photo, user.id);
+          await UserService.createOrUpdateUserProfile(user.id, { photo: photoURL });
           await refreshUserState(user);
         }
       } catch (error: any) {
@@ -113,34 +121,28 @@ export function useAuth(): [AuthState, AuthActions] {
         setState(prev => ({ ...prev, isLoading: false }));
       }
     },
-    
-    loginWithGoogle: async (idToken: string) => {
+
+    loginWithGoogle: async (idToken: string, nonce?: string) => {
       try {
         setState(prev => ({ ...prev, isLoading: true }));
-        const user = await AuthService.signInWithGoogle(idToken);
-        
-        if (user) {
-          // Asegurarse de que existe el perfil
-          await UserService.createOrUpdateUserProfile(user);
-          await refreshUserState(user);
-        }
+        await AuthService.signInWithGoogle(idToken, nonce);
       } catch (error: any) {
         Alert.alert('Error en Login con Google', error.message);
         setState(prev => ({ ...prev, isLoading: false }));
       }
     },
-    
-    loginAnonymously: async () => {
+
+    loginWithApple: async () => {
       try {
         setState(prev => ({ ...prev, isLoading: true }));
-        await AuthService.signInAnonymously();
-        // No necesitamos refreshUserState aquí, ya que el listener lo hará
+        const user = await AuthService.signInWithApple();
+        if (!user) setState(prev => ({ ...prev, isLoading: false }));
       } catch (error: any) {
-        Alert.alert('Error en Login Anónimo', error.message);
+        Alert.alert('Error en Login con Apple', error.message);
         setState(prev => ({ ...prev, isLoading: false }));
       }
     },
-    
+
     logout: async () => {
       try {
         setState(prev => ({ ...prev, isLoading: true }));
@@ -151,19 +153,13 @@ export function useAuth(): [AuthState, AuthActions] {
         setState(prev => ({ ...prev, isLoading: false }));
       }
     },
-    
+
     updateProfile: async (data: Partial<UserService.UserProfile>) => {
       try {
         if (!state.user) throw new Error('No hay usuario autenticado');
-        
+
         setState(prev => ({ ...prev, isLoading: true }));
-        await UserService.createOrUpdateUserProfile(state.user, data);
-        
-        // Si hay una foto nueva, actualizar también en Auth
-        if (data.photo) {
-          await AuthService.updateUserProfile(state.user, { photoURL: data.photo });
-        }
-        
+        await UserService.createOrUpdateUserProfile(state.user.id, data);
         await refreshUserState(state.user);
       } catch (error: any) {
         Alert.alert('Error al actualizar perfil', error.message);
@@ -171,6 +167,6 @@ export function useAuth(): [AuthState, AuthActions] {
       }
     },
   };
-  
+
   return [state, actions];
 }
