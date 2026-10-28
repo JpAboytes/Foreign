@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Platform, KeyboardAvoidingView, Image } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import type { ChatMessage } from '../models/chat_message';
+import type { ChatMessage } from '../../models/chat_message';
 
 export default function MentorChatScreen() {
   const { mentor: mentorParam } = useLocalSearchParams();
