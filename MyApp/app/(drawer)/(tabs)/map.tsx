@@ -20,11 +20,10 @@ import { getCurrentUser } from '../../../services/auth';
 import { getUserProfile } from '../../../services/userService';
 import { getFriendIds } from '../../../services/profileService';
 import { createLocation, getAllLocations } from '../../../services/mapService';
-import { createNotification } from '../../../services/notificationService';
+import { acceptRaiteRequest, cancelRaiteRequest as cancelRaiteRequestService, getRaiteRequest, sendRaiteRequest as sendRaiteRequestService, subscribeToRaitesForMe } from '../../../services/raiteService';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
-import { database } from '../../../firebase'; 
-import { set, ref as DatabaseRef, remove, onValue } from 'firebase/database';
+
 import MapView, { Marker, LatLng, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useRaite } from '../../../context/RaiteContext';
@@ -266,29 +265,19 @@ export default function MapScreen() {
       const requestId = params.showRaiteRequest as string;
       const fromUserId = params.fromUserId as string;
       
-      // Buscar la solicitud de raite en Realtime Database
-      const requestRef = DatabaseRef(database, `raiteRequests/${fromUserId}`);
-      onValue(requestRef, (snapshot) => {
-        if (snapshot.exists()) {
-          const raiteData = snapshot.val();
-          if (raiteData && raiteData.status === 'pending') {
-            // Obtener datos del usuario solicitante
-            getUserProfile(fromUserId).then(userData => {
-              if (userData) {
-                const userName = userData.name || 'Usuario';
-                
-                // Mostrar modal con la solicitud
-                setSelectedFriendRaite({
-                  friendId: fromUserId,
-                  friendName: userName,
-                  to: raiteData.to
-                });
-                setRaiteAlertModalVisible(true);
-              }
+      // Buscar la solicitud de raite del amigo
+      getRaiteRequest(fromUserId)
+        .then((request) => {
+          if (request && request.status === 'pending') {
+            setSelectedFriendRaite({
+              friendId: request.requesterId,
+              friendName: request.requesterName,
+              to: request.to
             });
+            setRaiteAlertModalVisible(true);
           }
-        }
-      }, { onlyOnce: true });
+        })
+        .catch((error) => console.error('Error obteniendo solicitud de raite:', error));
     }
   }, [params]); // Nota que la dependencia cambia de router.params a params
 
@@ -430,35 +419,8 @@ export default function MapScreen() {
     if (!userId || !userLocation || !selectedRaitePlace || selectedFriends.length === 0) return;
 
     try {
-      // Datos para la solicitud de raite en Realtime Database (tu código actual)
-      const raiteData = {
-        from: userLocation,
-        to: selectedRaitePlace,
-        timestamp: Date.now(),
-        status: 'pending',
-        selectedFriends, 
-      };
-      
-      // Guardar en Realtime Database
-      await set(DatabaseRef(database, `raiteRequests/${userId}`), raiteData);
-      
-      // Obtener datos del usuario actual para la notificación
-      const currentUserData = await getUserProfile(userId);
-      const currentUserName = currentUserData?.name || 'Usuario';
-      const currentUserPhoto = currentUserData?.photo || '';
-      
-      // Crear notificación en Firestore para cada amigo seleccionado
-      for (const friendId of selectedFriends) {
-        await createNotification({
-          type: 'raite_request',
-          fromUserId: userId,
-          fromUserName: currentUserName,
-          fromUserPhoto: currentUserPhoto,
-          toUserId: friendId,
-          contentId: userId, // Usamos userId como contentId para identificar la solicitud
-          contentText: `${currentUserName} necesita un raite. ¡Toca aquí para responder!`
-        });
-      }
+      // Las notificaciones a cada amigo las crea un trigger en la base de datos.
+      await sendRaiteRequestService(userId, userLocation, selectedRaitePlace, selectedFriends);
       
       console.log('Notificaciones de raite enviadas a:', selectedFriends);
     } catch (error) {
@@ -470,56 +432,18 @@ export default function MapScreen() {
   const cancelRaiteRequestRealtime = async () => {
     const userId = currentUserId;
     if (!userId) return;
-    await remove(DatabaseRef(database, `raiteRequests/${userId}`));
+    await cancelRaiteRequestService(userId);
   };
 
-  //a ellos se les manda
+  // Solicitudes de raite que me mandan mis amigos (en tiempo real)
   useEffect(() => {
-    if (friendIds.length === 0) return;
-  
-    const unsubscribes = friendIds.map(friendId => {
-      const friendRef = DatabaseRef(database, `raiteRequests/${friendId}`);
-      return onValue(friendRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data && data.status === 'pending') {
-          console.log(`Tu amigo ${friendId} está pidiendo raite a:`, data.to);
-        }
-      });
+    if (!currentUserId) return;
+    return subscribeToRaitesForMe(currentUserId, (requests) => {
+      setFriendRaiteRequests(
+        requests.map((r) => ({ friendId: r.requesterId, friendName: r.requesterName, to: r.to }))
+      );
     });
-    return () => {
-      unsubscribes.forEach(unsub => unsub());
-    };
-  }, [friendIds]);
-
-  useEffect(() => {
-    if (friendIds.length === 0) return;
-  
-    const unsubscribes = friendIds.map(friendId => {
-      const friendRequestRef = DatabaseRef(database, `raiteRequests/${friendId}`);
-      return onValue(friendRequestRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data && data.status === 'pending') {
-          setFriendRaiteRequests(prev => {
-            const alreadyExists = prev.find(r => r.friendId === friendId);
-            if (alreadyExists) return prev;
-  
-            const friend = friends.find(f => f.id === friendId);
-            if (!friend) return prev;
-  
-            return [...prev, { friendId, friendName: friend.name, to: data.to }];
-          });
-        } else {
-          setFriendRaiteRequests(prev =>
-            prev.filter(r => r.friendId !== friendId)
-          );
-        }
-      });
-    });
-  
-    return () => {
-      unsubscribes.forEach(unsub => unsub());
-    };
-  }, [friendIds, friends]);
+  }, [currentUserId]);
   
   useEffect(() => {
     setHasActiveRaiteRequest(friendRaiteRequests.length > 0);
@@ -676,13 +600,7 @@ export default function MapScreen() {
     if (!selectedFriendRaite || !currentUserId) return;
   
     try {
-      // Actualizar el estado a 'accepted' en la solicitud del amigo
-      const friendRequestRef = DatabaseRef(database, `raiteRequests/${selectedFriendRaite.friendId}`);
-      await set(friendRequestRef, {
-        ...selectedFriendRaite,
-        status: 'accepted',
-        acceptedBy: currentUserId,
-      });
+      await acceptRaiteRequest(selectedFriendRaite.friendId);
   
       // Cerrar modal
       setRaiteAlertModalVisible(false);
