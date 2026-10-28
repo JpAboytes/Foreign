@@ -685,6 +685,57 @@ export type Database = {
           },
         ]
       }
+      raite_requests: {
+        Row: {
+          accepted_by: string | null
+          created_at: string
+          from_lat: number | null
+          from_lng: number | null
+          recipients: string[]
+          requester_id: string
+          status: string
+          to_lat: number
+          to_lng: number
+        }
+        Insert: {
+          accepted_by?: string | null
+          created_at?: string
+          from_lat?: number | null
+          from_lng?: number | null
+          recipients: string[]
+          requester_id: string
+          status?: string
+          to_lat: number
+          to_lng: number
+        }
+        Update: {
+          accepted_by?: string | null
+          created_at?: string
+          from_lat?: number | null
+          from_lng?: number | null
+          recipients?: string[]
+          requester_id?: string
+          status?: string
+          to_lat?: number
+          to_lng?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raite_requests_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raite_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       raites: {
         Row: {
           created_at: string
@@ -787,6 +838,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_raite: { Args: { p_requester_id: string }; Returns: undefined }
       admin_delete_user: { Args: { p_user_id: string }; Returns: undefined }
       admin_list_users: {
         Args: never
