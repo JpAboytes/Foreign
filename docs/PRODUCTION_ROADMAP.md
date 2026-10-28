@@ -61,7 +61,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [ ] Migrar dominios de la app a Supabase en la rama `supabase-migration` (ver CLAUDE.md): [x] auth/perfiles · [x] posts/feed · [x] foro · [x] mapa · [~] mentores/chat (servicios, chat y pantallas migrados; falta probar Realtime end-to-end en dev build) · [~] amistades/notificaciones (servicios, contexto, friendRequest, layout e index en Supabase; migración 20261025000009 aplicada: notificaciones de amistad y de chat por trigger; raites migrados a `raite_requests` (migración 0011); falta marcar leídas al abrir un chat) · [~] admin/ajustes (servicios `adminService` y `settingsService` y pantallas migradas; migración `20261027000010_admin_settings.sql` pendiente de aplicar; falta probar con un usuario admin real y el borrado de Storage al eliminar cuenta)
 - [x] Storage: buckets `avatars` y `post-images` con políticas
 - [~] Realtime para chat y notificaciones; trigger que encola push en `push_queue` (migración `20261021000005` aplicada en `zoidnphuqxuvocoelrfj`) y Edge Function `send-push` desplegada (`supabase/functions/send-push`). Pendiente: programar su invocación (pg_cron / Database Webhook) y registrar `push_tokens` desde la app (`expo-notifications`)
-- [ ] Retirar Firebase y borrar los archivos `google-services.json` / `GoogleService-Info.plist`
+- [x] Retirar Firebase: dependencia `firebase`, `firebase.ts`, `services/firebase/`, `metro.config.js`, `extra.firebase`, `google-services.json` y `GoogleService-Info.plist` eliminados (2026-10-28)
 
 ### Fase 4 — Cumplimiento y calidad (`security-compliance` + `qa-engineer`)
 - [ ] Reportar y bloquear, cola de moderación en el panel admin, aceptación de términos en el registro
