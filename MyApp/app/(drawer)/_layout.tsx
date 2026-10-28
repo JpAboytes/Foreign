@@ -1,6 +1,5 @@
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Drawer } from 'expo-router/drawer';
-import { Ionicons } from '@expo/vector-icons'; // Or your icon library
 import { View, Text, Pressable, StyleSheet, TouchableOpacity, Switch, Image } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import { DrawerActions } from "expo-router/react-navigation";
@@ -54,18 +53,11 @@ export default function DrawerLayout() {
           })}
           drawerContent={() => <CustomDrawerContent isAdmin={isAdmin} />}
         >
-          {/* ... existing screens ... */}
-          <Drawer.Screen
-            name="messages" // This will look for app/(drawer)/messages.tsx
-            options={{
-              drawerLabel: 'Mensajes',
-              title: 'Mis Mensajes',
-              drawerIcon: ({ size, color }) => (
-                <Ionicons name="chatbubbles-outline" size={size} color={color as string} />
-              ),
-            }}
-          />
-          {/* ... other existing screens ... */}
+          {/* Expo Router 58 solo muestra las pantallas declaradas en el layout. */}
+          <Drawer.Screen name="index" />
+          <Drawer.Screen name="(tabs)" />
+          <Drawer.Screen name="(adminTabs)" />
+          <Drawer.Screen name="settings/index" />
         </Drawer>
       )}
     </GestureHandlerRootView>
@@ -93,7 +85,7 @@ function CustomDrawerContent({ isAdmin }: { isAdmin: boolean }) {
 
   const menuItems: { title: string; icon: keyof typeof MaterialCommunityIcons.glyphMap, path: string }[] = [
     { title: "User", icon: "account", path: '/(tabs)/profile' },
-    { title: "Messages", icon: "message", path: 'extra/messages' }, 
+    { title: "Messages", icon: "message", path: '/extra/messages' }, 
     { title: "Friend request", icon: "account-plus", path: '/extra/friendRequest' },
     { title: "Configuración", icon: "cog", path: '/settings' },  // Esta línea debe apuntar a '/settings'
   ];
