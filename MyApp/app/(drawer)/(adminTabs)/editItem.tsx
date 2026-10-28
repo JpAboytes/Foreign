@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Text, TextInput, TouchableOpacity, Alert, StyleSheet, View } from 'react-native';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { firestore } from '../../../firebase';
+import { getEditableItem, updateEditableItem } from '../../../services/adminService';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
 export default function EditItem() {
@@ -15,35 +14,50 @@ export default function EditItem() {
   const [name, setName] = useState('');
   const [areasInput, setAreasInput] = useState('');
 
+  // Solo estudiantes y mentores se editan aquí; posts, ubicaciones y foros solo se moderan (eliminar).
+  const editable = category === 'users' || category === 'mentors';
+
   useEffect(() => {
-    if (!itemId || !category) return;
-    
+    if (!itemId || !editable) return;
+
     (async () => {
-      const path = category === 'mentors' ? 'users' : category;
-      const snap = await getDoc(doc(firestore, path, itemId));
-      const data = snap.data() as any;
-      setName(data?.name || '');
-      if (category === 'mentors') {
-        setAreasInput((data?.areas as string[] || []).join(', '));
+      try {
+        const data = await getEditableItem(category as 'users' | 'mentors', itemId);
+        setName(data.name);
+        if (category === 'mentors') {
+          setAreasInput(data.areas.join(', '));
+        }
+      } catch (error) {
+        console.error('Error al cargar el elemento:', error);
+        Alert.alert('Error', 'No se pudo cargar el elemento');
       }
     })();
   }, [itemId, category]);
 
   const handleUpdate = async () => {
     if (!name.trim()) return Alert.alert('El nombre es obligatorio');
-    const updateData: any = { name, updatedAt: serverTimestamp() };
-    if (category === 'mentors') {
-      updateData.areas = areasInput
-        .split(',')
-        .map(a => a.trim())
-        .filter(a => a);
+    try {
+      await updateEditableItem(category as 'users' | 'mentors', itemId, {
+        name: name.trim(),
+        areas:
+          category === 'mentors'
+            ? areasInput.split(',').map(a => a.trim()).filter(a => a)
+            : undefined,
+      });
+      router.back();
+    } catch (error) {
+      console.error('Error al guardar:', error);
+      Alert.alert('Error', 'No se pudieron guardar los cambios');
     }
-    await updateDoc(
-      doc(firestore, category === 'mentors' ? 'users' : category, itemId),
-      updateData
-    );
-    router.back();
   };
+
+  if (!editable) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.label}>Este tipo de elemento no se edita desde el panel. Puedes eliminarlo desde la lista.</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

@@ -14,18 +14,22 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { getAuth, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
-import { firestore } from '../../../firebase'; // Ya no necesitamos database
+import { getCurrentUser } from '../../../services/auth';
+import {
+  getNotificationsEnabled,
+  setNotificationsEnabled as saveNotificationsEnabled,
+  getAccountAccessInfo,
+  deleteMyAccount,
+} from '../../../services/settingsService';
 import * as Haptics from 'expo-haptics';
 import { TextInput } from 'react-native-gesture-handler';
 import MaxWidthContainer from '../../../components/MaxWidthContainer';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const auth = getAuth();
-  const user = auth.currentUser;
-  
+  const [userId, setUserId] = useState<string | null>(null);
+  const [hasPassword, setHasPassword] = useState(true);
+
   // Eliminada la state variable locationEnabled
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -34,46 +38,38 @@ export default function SettingsScreen() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
-  // Cargar preferencias del usuario desde Firestore
+  // Cargar preferencias del usuario
   useEffect(() => {
     const loadUserPreferences = async () => {
-      if (!user) return;
-      
       try {
         setLoading(true);
-        const userDoc = await doc(firestore, 'users', user.uid);
-        const userSnapshot = await getDoc(userDoc);
-        
-        if (userSnapshot.exists()) {
-          const userData = userSnapshot.data();
-          // Solo cargamos las notificaciones
-          setNotificationsEnabled(userData.notificationsEnabled !== false); // default true
-        }
+        const user = await getCurrentUser();
+        if (!user) return;
+        setUserId(user.id);
+        const [enabled, access] = await Promise.all([
+          getNotificationsEnabled(user.id),
+          getAccountAccessInfo(),
+        ]);
+        setNotificationsEnabled(enabled);
+        setHasPassword(access.hasPassword);
       } catch (error) {
         console.error("Error al cargar las preferencias:", error);
       } finally {
         setLoading(false);
       }
     };
-    
-    loadUserPreferences();
-  }, [user]);
 
-  // Removida la función toggleLocation
-  
+    loadUserPreferences();
+  }, []);
+
   // Función para toggle de notificaciones
   const toggleNotifications = async (value: boolean) => {
-    if (!user) return;
-    
+    if (!userId) return;
+
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setNotificationsEnabled(value);
-      
-      // Actualiza Firestore
-      const userDocRef = doc(firestore, 'users', user.uid);
-      await updateDoc(userDocRef, {
-        notificationsEnabled: value
-      });
+      await saveNotificationsEnabled(userId, value);
     } catch (error) {
       console.error("Error al actualizar la preferencia de notificaciones:", error);
       // Restaurar el estado en caso de error
@@ -89,38 +85,28 @@ export default function SettingsScreen() {
 
   // Función para eliminar la cuenta
   const handleDeleteAccount = async () => {
-    if (!user || !password) return;
-    
-    // Verificar si el email existe
-    if (!user.email) {
-      setDeleteError('No se puede eliminar la cuenta: no hay email asociado.');
-      setDeleteLoading(false);
-      return;
-    }
-    
+    if (!userId || (hasPassword && !password)) return;
+
     setDeleteLoading(true);
     setDeleteError('');
-    
+
     try {
-      // Reautenticar al usuario
-      const credential = EmailAuthProvider.credential(user.email, password);
-      await reauthenticateWithCredential(user, credential);
-      
-      // Eliminar datos de Firestore
-      await deleteDoc(doc(firestore, 'users', user.uid));
-      
-      // Eliminar cuenta de autenticación
-      await deleteUser(user);
-      
+      await deleteMyAccount(hasPassword ? password : undefined);
       setDeleteModalVisible(false);
       router.replace('/login');
     } catch (error) {
       console.error("Error al eliminar la cuenta:", error);
-      setDeleteError('Contraseña incorrecta o error al eliminar la cuenta.');
+      setDeleteError(
+        error instanceof Error && error.message === 'Contraseña incorrecta.'
+          ? 'Contraseña incorrecta.'
+          : 'No se pudo eliminar la cuenta. Inténtalo de nuevo.'
+      );
     } finally {
       setDeleteLoading(false);
     }
   };
+
+  const canConfirmDelete = !hasPassword || !!password;
 
   if (loading) {
     return (
@@ -196,16 +182,20 @@ export default function SettingsScreen() {
                   Esta acción no se puede deshacer. Todos tus datos, publicaciones y conexiones serán eliminados permanentemente.
                 </Text>
                 
-                <Text style={styles.inputLabel}>Ingresa tu contraseña para confirmar:</Text>
-                <TextInput
-                  style={styles.passwordInput}
-                  secureTextEntry
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Contraseña"
-                  placeholderTextColor="#888"
-                />
-                
+                {hasPassword && (
+                  <>
+                    <Text style={styles.inputLabel}>Ingresa tu contraseña para confirmar:</Text>
+                    <TextInput
+                      style={styles.passwordInput}
+                      secureTextEntry
+                      value={password}
+                      onChangeText={setPassword}
+                      placeholder="Contraseña"
+                      placeholderTextColor="#888"
+                    />
+                  </>
+                )}
+
                 {deleteError ? <Text style={styles.errorText}>{deleteError}</Text> : null}
                 
                 <View style={styles.modalButtons}>
@@ -222,9 +212,9 @@ export default function SettingsScreen() {
                   </TouchableOpacity>
                   
                   <TouchableOpacity 
-                    style={[styles.confirmDeleteButton, !password && styles.disabledButton]} 
+                    style={[styles.confirmDeleteButton, canConfirmDelete ? null : styles.disabledButton]} 
                     onPress={handleDeleteAccount}
-                    disabled={!password || deleteLoading}
+                    disabled={!canConfirmDelete || deleteLoading}
                   >
                     {deleteLoading ? (
                       <ActivityIndicator size="small" color="#fff" />
