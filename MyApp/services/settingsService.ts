@@ -28,8 +28,8 @@ export const getAccountAccessInfo = async (): Promise<{ email: string | null; ha
 };
 
 // Elimina la cuenta del usuario autenticado. Si entra con contraseña se reconfirma antes.
-// La función delete_my_account borra auth.users y, en cascada, perfil y contenido.
-// Pendiente (Edge Function): borrar los archivos del usuario en Storage.
+// La Edge Function delete-account (JWT del usuario, sin user_id en el cuerpo) borra sus archivos
+// de Storage (avatars y post-images) y después auth.users, que en cascada borra perfil y contenido.
 export const deleteMyAccount = async (password?: string): Promise<void> => {
   const { email, hasPassword } = await getAccountAccessInfo();
   if (hasPassword) {
@@ -38,8 +38,8 @@ export const deleteMyAccount = async (password?: string): Promise<void> => {
     if (error) throw new Error('Contraseña incorrecta.');
   }
 
-  const { error } = await supabase.rpc('delete_my_account');
-  if (error) throw error;
+  const { error } = await supabase.functions.invoke('delete-account', { method: 'POST' });
+  if (error) throw new Error('No se pudo eliminar la cuenta. Intenta de nuevo.');
 
   // La sesión local ya no es válida; se limpia sin llamar al servidor.
   await supabase.auth.signOut({ scope: 'local' });
