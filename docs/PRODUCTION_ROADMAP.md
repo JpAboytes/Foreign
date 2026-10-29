@@ -58,14 +58,14 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [x] Esquema (migraciones `supabase/migrations/2026102000000{1,2,3}`, aplicadas en `zoidnphuqxuvocoelrfj`): `profiles`, `posts`, `post_likes`, `comments`, `forum_questions`, `forum_answers`, `map_locations`, `mentors`, `chat_sessions`, `messages`, `notifications`, `friendships`, `raites`, `reports`, `blocks`
 - [x] RLS en todas las tablas; rol admin vía tabla `user_roles` o custom claim (nunca un flag editable por el cliente)
 - [~] Auth: email, Google y Apple; deep links con el scheme nuevo — código en `main` (cliente, `services/auth.ts`, perfiles, avatar en Storage, Sign in with Apple). Apple y Google (web + iOS) ya configurados en Supabase; login con email probado en local (2026-10-28); falta el cliente Android de Google (tras el primer build de EAS)
-- [x] Migrar todos los dominios de la app a Supabase (auth/perfiles, posts/feed, foro, mapa, mentores/chat, amistades/notificaciones, admin/ajustes, raites); entró a `main` en #28 el 2026-10-28. Migraciones 0001–0011 aplicadas. Pendientes: marcar mensajes como leídos al abrir un chat, probar con un usuario admin real y borrar Storage al eliminar cuenta (Fase 4)
+- [x] Migrar todos los dominios de la app a Supabase (auth/perfiles, posts/feed, foro, mapa, mentores/chat, amistades/notificaciones, admin/ajustes, raites); entró a `main` en #28 el 2026-10-28. Migraciones 0001–0011 aplicadas. Pendientes: marcar mensajes como leídos al abrir un chat, probar con un usuario admin real (el borrado de Storage al eliminar cuenta está en Fase 4)
 - [x] Storage: buckets `avatars` y `post-images` con políticas
 - [~] Realtime para chat y notificaciones; trigger que encola push en `push_queue` (migración `20261021000005` aplicada en `zoidnphuqxuvocoelrfj`) y Edge Function `send-push` desplegada (`supabase/functions/send-push`). Pendiente: programar su invocación (pg_cron / Database Webhook) y registrar `push_tokens` desde la app (`expo-notifications`)
 - [x] Retirar Firebase: dependencia `firebase`, `firebase.ts`, `services/firebase/`, `metro.config.js`, `extra.firebase`, `google-services.json` y `GoogleService-Info.plist` eliminados (2026-10-28)
 
 ### Fase 4 — Cumplimiento y calidad (`security-compliance` + `qa-engineer`)
 - [ ] Reportar y bloquear, cola de moderación en el panel admin, aceptación de términos en el registro
-- [ ] Borrado de cuenta completo (Edge Function que borra datos y Storage) + URL web de borrado
+- [~] Borrado de cuenta completo: Edge Function `delete-account` (borra Storage `avatars`/`post-images` y luego `auth.users`; el JWT define el usuario) y `deleteMyAccount` la invoca, con test; página `docs/web/borrar-cuenta.html` lista. Pendiente: desplegar la función en `zoidnphuqxuvocoelrfj`, publicar la URL (y darla en Play Console) y confirmar el correo `privacidad@foreign.mx`
 - [ ] Política de privacidad y términos publicados (pendiente: URL pública) · [x] Privacy Manifest y textos de permisos (es-MX) en `app.config.js`
 - [ ] Partir `map.tsx` y `manageUsers.tsx`; estados de carga, error y vacío
 - [ ] Monitoreo de errores (Sentry) y analítica básica
