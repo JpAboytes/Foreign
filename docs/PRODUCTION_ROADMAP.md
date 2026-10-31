@@ -65,7 +65,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 
 ### Fase 4 — Cumplimiento y calidad (`security-compliance` + `qa-engineer`)
 - [ ] Reportar y bloquear, cola de moderación en el panel admin, aceptación de términos en el registro
-- [~] Borrado de cuenta completo: Edge Function `delete-account` (borra Storage `avatars`/`post-images` y luego `auth.users`; el JWT define el usuario) y `deleteMyAccount` la invoca, con test; página `docs/web/borrar-cuenta.html` lista. Pendiente: desplegar la función en `zoidnphuqxuvocoelrfj`, publicar la URL (y darla en Play Console) y confirmar el correo `privacidad@foreign.mx`
+- [~] Borrado de cuenta completo: Edge Function `delete-account` (borra Storage `avatars`/`post-images` y luego `auth.users`; el JWT define el usuario) y `deleteMyAccount` la invoca, con test; página `docs/web/borrar-cuenta.html` lista. Función desplegada en `zoidnphuqxuvocoelrfj` (verify_jwt activo, 2026-10-29) y migración 0012 revoca `delete_my_account` a `authenticated`. Pendiente: probar el borrado de punta a punta con un usuario real, publicar la URL (y darla en Play Console), confirmar el correo `privacidad@foreign.mx` y enrutar `admin_delete_user` por una función que también limpie Storage
 - [ ] Política de privacidad y términos publicados (pendiente: URL pública) · [x] Privacy Manifest y textos de permisos (es-MX) en `app.config.js`
 - [ ] Partir `map.tsx` y `manageUsers.tsx`; estados de carga, error y vacío
 - [ ] Monitoreo de errores (Sentry) y analítica básica
