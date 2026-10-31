@@ -58,7 +58,8 @@ export default function FriendProfile() {
     isLiked,
     setSelectedPost,
     handleToggleLike,
-    handleDeletePost
+    handleDeletePost,
+    handleBlockAuthor
   } = usePosts(currentUserProfile);
   
   // Usar el hook useComments existente
@@ -162,6 +163,7 @@ export default function FriendProfile() {
           onClose={closeModal}
           onToggleLike={handleToggleLike}
           onDeletePost={handleDeletePost}
+          onBlockAuthor={handleBlockAuthor}
           isLiked={isLiked}
           comments={comments}
           newComment={newComment}
