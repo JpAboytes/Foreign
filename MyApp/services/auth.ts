@@ -3,6 +3,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import type { AuthError, User } from '@supabase/supabase-js';
 import { supabase } from './supabase/client';
+import { unregisterPushToken } from './pushService';
 
 export type AuthUser = User;
 
@@ -122,6 +123,12 @@ export const signInWithApple = async (): Promise<AuthUser | null> => {
 
 // Cerrar sesión
 export const logout = async (): Promise<void> => {
+  // Antes de cerrar sesión: RLS solo deja borrar el token al dueño autenticado.
+  try {
+    await unregisterPushToken();
+  } catch (error) {
+    console.error('Error al desregistrar el push token:', error);
+  }
   const { error } = await supabase.auth.signOut();
   if (error) throw toError(error, 'Error al cerrar sesión');
 };
