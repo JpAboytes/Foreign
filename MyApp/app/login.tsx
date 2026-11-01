@@ -17,7 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import MaxWidthContainer from '../components/MaxWidthContainer';
 import LoginForm from '../components/auth/LoginForm';
 import SignupForm from '../components/auth/SignupForm';
-import { GOOGLE_CONFIG, isAppleSignInAvailable } from '../services/auth';
+import TermsGate from '../components/auth/TermsGate';
+import { GOOGLE_CONFIG, TERMS_VERSION, isAppleSignInAvailable } from '../services/auth';
 import { useAuth } from '../hooks/useAuth';
 import { UserProfile } from '../services/userService';
 
@@ -78,17 +79,24 @@ export default function LoginScreen() {
   const handleSignup = async (
     email: string, 
     password: string, 
-    profileData: Partial<UserProfile>
+    profileData: Partial<UserProfile>,
+    acceptedTerms: boolean
   ) => {
     try {
       // La foto se sube después de crear la cuenta, en la carpeta del usuario.
-      await authActions.signup(email, password, profileData);
+      await authActions.signup(email, password, profileData, acceptedTerms);
     } catch (error) {
       console.error('Error en registro:', error);
     }
   };
   
-  if (authState.isLoading) {
+  // Sesión iniciada pero sin aceptar la versión vigente de los términos (Google/Apple o cuenta previa).
+  const needsTerms =
+    !!authState.user &&
+    !!authState.userProfile &&
+    (!authState.userProfile.termsAcceptedAt || authState.userProfile.termsVersion !== TERMS_VERSION);
+
+  if (authState.isLoading && !needsTerms) {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#bb86fc" />
@@ -111,6 +119,14 @@ export default function LoginScreen() {
             </View>
             
             <View style={styles.formCard}>
+              {needsTerms ? (
+                <TermsGate
+                  isLoading={authState.isLoading}
+                  onAccept={authActions.acceptTerms}
+                  onDecline={authActions.logout}
+                />
+              ) : (
+              <>
               <View style={styles.tabContainer}>
                 <TouchableOpacity 
                   style={[styles.tab, activeTab === 'login' && styles.activeTab]}
@@ -150,6 +166,8 @@ export default function LoginScreen() {
                   universities={UNIVERSITIES}
                   interests={INTERESTS}
                 />
+              )}
+              </>
               )}
             </View>
           </View>
