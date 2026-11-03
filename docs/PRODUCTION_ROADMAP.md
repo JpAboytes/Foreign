@@ -64,7 +64,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [x] Retirar Firebase: dependencia `firebase`, `firebase.ts`, `services/firebase/`, `metro.config.js`, `extra.firebase`, `google-services.json` y `GoogleService-Info.plist` eliminados (2026-10-28)
 
 ### Fase 4 — Cumplimiento y calidad (`security-compliance` + `qa-engineer`)
-- [ ] Reportar y bloquear, cola de moderación en el panel admin, aceptación de términos en el registro
+- [~] Reportar y bloquear: `services/moderationService.ts` (reportar, bloquear, desbloquear) con tests; en las publicaciones del feed se puede reportar y bloquear al autor y el feed oculta a los bloqueados. Pendiente: reportar/bloquear en comentarios, foro, chat y perfiles, pantalla de usuarios bloqueados, cola de moderación en el panel admin y aceptación de términos en el registro
 - [~] Borrado de cuenta completo: Edge Function `delete-account` (borra Storage `avatars`/`post-images` y luego `auth.users`; el JWT define el usuario) y `deleteMyAccount` la invoca, con test; página `docs/web/borrar-cuenta.html` lista. Función desplegada en `zoidnphuqxuvocoelrfj` (verify_jwt activo, 2026-10-29) y migración 0012 revoca `delete_my_account` a `authenticated`. Pendiente: probar el borrado de punta a punta con un usuario real, publicar la URL (y darla en Play Console), confirmar el correo `privacidad@foreign.mx` y enrutar `admin_delete_user` por una función que también limpie Storage
 - [ ] Política de privacidad y términos publicados (pendiente: URL pública) · [x] Privacy Manifest y textos de permisos (es-MX) en `app.config.js`
 - [~] Partir `map.tsx` (hecho: 1578 → 189 líneas, hooks y componentes en `components/map/`) y `manageUsers.tsx`; estados de carga, error y vacío (pendiente)

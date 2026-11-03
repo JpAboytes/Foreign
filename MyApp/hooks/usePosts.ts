@@ -6,6 +6,7 @@ import {
   deletePost
 } from '../services/postService';
 import { getFriendIds } from '../services/profileService';
+import { getBlockedIds, blockUser } from '../services/moderationService';
 import { Post } from '../services/postService';
 import { UserProfile } from '../services/userService';
 
@@ -29,12 +30,14 @@ export function usePosts(currentUser: UserProfile | null) {
     if (!currentUser?.uid) return;
 
     try {
-      const [byUniversity, friendIds] = await Promise.all([
+      const [byUniversity, friendIds, blockedIds] = await Promise.all([
         currentUser.university ? getPostsByUniversity(currentUser.university) : Promise.resolve([]),
         getFriendIds(currentUser.uid),
+        getBlockedIds(currentUser.uid),
       ]);
-      setUniversityPosts(byUniversity);
-      setFriendPosts(await getPostsByFriends(friendIds));
+      const visible = (posts: Post[]) => posts.filter((post) => !blockedIds.includes(post.userId));
+      setUniversityPosts(visible(byUniversity));
+      setFriendPosts(visible(await getPostsByFriends(friendIds)));
     } catch (error) {
       console.error('Error fetching posts:', error);
     }
@@ -89,6 +92,18 @@ export function usePosts(currentUser: UserProfile | null) {
     }
   };
 
+  // Bloquear al autor del post abierto y ocultar su contenido
+  const handleBlockAuthor = async (authorId: string) => {
+    if (!currentUser?.uid) return;
+    try {
+      await blockUser(currentUser.uid, authorId);
+      setSelectedPost(null);
+      fetchPosts();
+    } catch (error) {
+      console.error('Error blocking user:', error);
+    }
+  };
+
   return {
     universityPosts,
     friendPosts,
@@ -99,6 +114,7 @@ export function usePosts(currentUser: UserProfile | null) {
     fetchPosts,
     refreshPosts,
     handleToggleLike,
-    handleDeletePost
+    handleDeletePost,
+    handleBlockAuthor
   };
 }
