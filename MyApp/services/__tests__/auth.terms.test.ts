@@ -8,6 +8,7 @@ const mockFrom = jest.fn<(...a: any[]) => any>();
 jest.mock('react-native', () => ({ Platform: { OS: 'android' } }));
 jest.mock('expo-apple-authentication', () => ({}));
 jest.mock('expo-crypto', () => ({}));
+jest.mock('../pushService', () => ({ unregisterPushToken: jest.fn() }));
 jest.mock('../supabase/client', () => ({
   supabase: {
     auth: { signUp: (...a: any[]) => mockSignUp(...a) },
