@@ -14,9 +14,15 @@ export interface AuthState {
 
 export interface AuthActions {
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, profileData: Partial<UserService.UserProfile>) => Promise<void>;
+  signup: (
+    email: string,
+    password: string,
+    profileData: Partial<UserService.UserProfile>,
+    acceptedTerms: boolean
+  ) => Promise<void>;
   loginWithGoogle: (idToken: string, nonce?: string) => Promise<void>;
   loginWithApple: () => Promise<void>;
+  acceptTerms: () => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<UserService.UserProfile>) => Promise<void>;
 }
@@ -67,6 +73,13 @@ export function useAuth(): [AuthState, AuthActions] {
       const profile = await refreshUserState(user);
       if (!user) return;
 
+      // Sin términos aceptados (alta con Google/Apple o cuenta previa) se queda en login,
+      // que muestra la pantalla de aceptación.
+      if (profile && (!profile.termsAcceptedAt || profile.termsVersion !== AuthService.TERMS_VERSION)) {
+        router.replace('/login');
+        return;
+      }
+
       // Redirigir basado en el tipo de usuario
       if (profile?.isAdmin) {
         router.replace('/(drawer)/(adminTabs)');
@@ -91,7 +104,12 @@ export function useAuth(): [AuthState, AuthActions] {
       }
     },
 
-    signup: async (email: string, password: string, profileData: Partial<UserService.UserProfile>) => {
+    signup: async (
+      email: string,
+      password: string,
+      profileData: Partial<UserService.UserProfile>,
+      acceptedTerms: boolean = false
+    ) => {
       try {
         setState(prev => ({ ...prev, isLoading: true }));
         const { user, needsEmailConfirmation } = await AuthService.registerWithEmail(email, password, {
@@ -99,7 +117,7 @@ export function useAuth(): [AuthState, AuthActions] {
           university: profileData.university,
           origin: profileData.origin,
           interests: profileData.interests,
-        });
+        }, acceptedTerms);
 
         if (needsEmailConfirmation) {
           setState(prev => ({ ...prev, isLoading: false }));
@@ -139,6 +157,19 @@ export function useAuth(): [AuthState, AuthActions] {
         if (!user) setState(prev => ({ ...prev, isLoading: false }));
       } catch (error: any) {
         Alert.alert('Error en Login con Apple', error.message);
+        setState(prev => ({ ...prev, isLoading: false }));
+      }
+    },
+
+    acceptTerms: async () => {
+      try {
+        if (!state.user) throw new Error('No hay usuario autenticado');
+        setState(prev => ({ ...prev, isLoading: true }));
+        await AuthService.acceptTerms(state.user.id);
+        const profile = await refreshUserState(state.user);
+        router.replace(profile?.isAdmin ? '/(drawer)/(adminTabs)' : '/(drawer)/(tabs)/feed');
+      } catch (error: any) {
+        Alert.alert('Error', error.message);
         setState(prev => ({ ...prev, isLoading: false }));
       }
     },

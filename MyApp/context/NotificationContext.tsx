@@ -1,5 +1,12 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'expo-router';
 import { subscribeToAuthChanges } from '../services/auth';
+import {
+  configureForegroundHandler,
+  getInitialPushRoute,
+  registerForPushNotifications,
+  subscribeToPushEvents,
+} from '../services/pushService';
 import {
   Notification,
   NotificationType,
@@ -116,6 +123,7 @@ export const NotificationProvider: React.FC<{children: React.ReactNode}> = ({ ch
   const [userId, setUserId] = useState<string | null>(null);
   const [allNotifications, setAllNotifications] = useState<Notification[]>([]);
   const userIdRef = useRef<string | null>(null);
+  const router = useRouter();
   userIdRef.current = userId;
 
   const systemNotifications = allNotifications.filter(n => n.type !== 'chat_message');
@@ -174,6 +182,34 @@ export const NotificationProvider: React.FC<{children: React.ReactNode}> = ({ ch
     });
     return () => unsubscribe();
   }, []);
+
+  // Push: registra el token del dispositivo al iniciar sesión (el borrado ocurre en logout()).
+  useEffect(() => {
+    if (!userId) return;
+    registerForPushNotifications(userId).catch(error =>
+      console.error('Error al registrar notificaciones push:', error)
+    );
+  }, [userId]);
+
+  // Push: navegación al tocar una notificación (app abierta, en segundo plano o cerrada).
+  useEffect(() => {
+    if (!userId) return;
+    configureForegroundHandler();
+    let active = true;
+    getInitialPushRoute()
+      .then(route => {
+        if (active && route) router.push(route as any);
+      })
+      .catch(error => console.error('Error al leer la notificación inicial:', error));
+    const unsubscribe = subscribeToPushEvents({
+      onReceived: () => fetchNotifications(),
+      onOpened: route => router.push(route as any),
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [userId, fetchNotifications, router]);
 
   // Carga inicial + Realtime; el canal se cierra en el cleanup
   useEffect(() => {
