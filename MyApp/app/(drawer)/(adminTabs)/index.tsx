@@ -109,6 +109,15 @@ export default function App() {
       loading: loading.forums,
       action: 'Ir a la gestión de Foros',
       path: 'gestionForos' // 🔥 Agregado path
+    },
+    {
+      id: 'reports',
+      title: 'Reportes',
+      icon: <MaterialIcons name="flag" size={28} color="#b388ff" />,
+      count: undefined,
+      loading: false,
+      action: 'Ir a la cola de moderación',
+      path: 'reports'
     }
   ];
 
@@ -130,7 +139,7 @@ export default function App() {
                 ) : (
                   <Text style={styles.countNumber}>{section.count}</Text>
                 )}
-                <Text style={styles.countLabel}>Total de {section.title}</Text>
+                <Text style={styles.countLabel}>{section.id === 'reports' ? 'Cola de moderación' : `Total de ${section.title}`}</Text>
               </View>
               <TouchableOpacity style={styles.button} onPress={() => handleNavigation(section.path)}>
                 <Text style={styles.buttonText}>{section.action}</Text>

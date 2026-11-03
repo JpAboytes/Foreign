@@ -783,6 +783,8 @@ export type Database = {
           id: string
           reason: string
           reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: string
           target_id: string
           target_type: string
@@ -794,6 +796,8 @@ export type Database = {
           reporter_id: string
           status?: string
           target_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           target_type: string
         }
         Update: {
@@ -803,12 +807,21 @@ export type Database = {
           reporter_id?: string
           status?: string
           target_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           target_type?: string
         }
         Relationships: [
           {
             foreignKeyName: "reports_reporter_id_fkey"
             columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
