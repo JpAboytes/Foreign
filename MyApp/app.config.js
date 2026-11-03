@@ -72,6 +72,12 @@ export default {
       "expo-web-browser",
       "expo-apple-authentication",
       [
+        "expo-notifications",
+        {
+          color: "#ffffff",
+        },
+      ],
+      [
         "expo-location",
         {
           locationWhenInUsePermission:
