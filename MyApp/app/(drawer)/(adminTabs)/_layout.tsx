@@ -47,6 +47,13 @@ export default function StackHome() {
         }}
       />
 
+      <Stack.Screen
+        name="reports"
+        options={{
+          headerTitle: "Reportes",
+        }}
+      />
+
     </Stack>
   );
 }
