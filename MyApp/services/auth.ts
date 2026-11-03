@@ -14,7 +14,17 @@ export interface SignupProfileData {
   university?: string;
   origin?: string;
   interests?: string[];
+  // Versión de los términos aceptada; el trigger handle_new_user pone la fecha en el servidor.
+  terms_version?: string;
 }
+
+// Versión vigente de los Términos y Condiciones (EULA); súbela al cambiar docs/web/terminos.html
+// para volver a pedir la aceptación.
+export const TERMS_VERSION = '2026-11-01';
+
+// URL pública de los términos; se define en .env / variables de EAS.
+export const TERMS_URL =
+  process.env.EXPO_PUBLIC_TERMS_URL || 'https://foreign.mx/terminos';
 
 export interface SignupResult {
   user: AuthUser | null;
@@ -53,12 +63,16 @@ export const loginWithEmail = async (email: string, password: string): Promise<A
 export const registerWithEmail = async (
   email: string,
   password: string,
-  profileData: SignupProfileData = {}
+  profileData: SignupProfileData = {},
+  acceptedTerms = false
 ): Promise<SignupResult> => {
+  if (!acceptedTerms) {
+    throw new Error('Debes aceptar los Términos y Condiciones para crear tu cuenta.');
+  }
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { ...profileData } },
+    options: { data: { ...profileData, terms_version: TERMS_VERSION } },
   });
   if (error) throw toError(error, 'Error al registrar usuario');
   return { user: data.user, needsEmailConfirmation: !data.session };
@@ -119,6 +133,16 @@ export const signInWithApple = async (): Promise<AuthUser | null> => {
   }
 
   return data.user;
+};
+
+// Registra que el usuario autenticado aceptó los términos vigentes (altas con Google/Apple,
+// o cuentas existentes que aún no aceptan). RLS (profiles_update_own) limita la escritura a su perfil.
+export const acceptTerms = async (userId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION })
+    .eq('id', userId);
+  if (error) throw toError(error as unknown as Error, 'No se pudo registrar la aceptación de los términos');
 };
 
 // Cerrar sesión

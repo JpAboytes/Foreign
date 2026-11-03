@@ -6,16 +6,18 @@ import {
   TouchableOpacity, 
   ActivityIndicator, 
   StyleSheet,
-  ScrollView
+  ScrollView,
+  Linking
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Picker } from '@react-native-picker/picker';
 import ImagePicker from './ImagePicker';
 import { UserProfile } from '../../services/userService';
+import { TERMS_URL } from '../../services/auth';
 
 interface SignupFormProps {
-  onSignup: (email: string, password: string, profileData: Partial<UserProfile>) => Promise<void>;
+  onSignup: (email: string, password: string, profileData: Partial<UserProfile>, acceptedTerms: boolean) => Promise<void>;
   onGoogleSignup: () => void;
   onAppleSignup: () => Promise<void>;
   isLoading: boolean;
@@ -43,6 +45,7 @@ export default function SignupForm({
   const [university, setUniversity] = useState('');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   
   const toggleInterest = (interest: string) => {
     setSelectedInterests(prev => 
@@ -79,6 +82,11 @@ export default function SignupForm({
       return;
     }
     
+    if (!acceptedTerms) {
+      alert('Debes aceptar los Términos y Condiciones para crear tu cuenta');
+      return;
+    }
+
     // Crear objeto de perfil
     const profileData: Partial<UserProfile> = {
       name,
@@ -89,7 +97,7 @@ export default function SignupForm({
     };
     
     // Llamar a la función de registro
-    await onSignup(email, password, profileData);
+    await onSignup(email, password, profileData, acceptedTerms);
   };
   
   return (
@@ -197,6 +205,29 @@ export default function SignupForm({
         />
       </View>
 
+      <View style={styles.termsRow}>
+        <TouchableOpacity
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: acceptedTerms }}
+          accessibilityLabel="Acepto los Términos y Condiciones"
+          onPress={() => setAcceptedTerms(prev => !prev)}
+          hitSlop={8}
+        >
+          <Ionicons
+            name={acceptedTerms ? 'checkbox' : 'square-outline'}
+            size={24}
+            color={acceptedTerms ? '#bb86fc' : '#888'}
+          />
+        </TouchableOpacity>
+        <Text style={styles.termsText}>
+          Acepto los{' '}
+          <Text style={styles.termsLink} onPress={() => Linking.openURL(TERMS_URL)}>
+            Términos y Condiciones
+          </Text>
+          , incluida la política de cero tolerancia a contenido abusivo.
+        </Text>
+      </View>
+
       {isLoading ? (
         <ActivityIndicator size="large" color="#bb86fc" style={styles.loader} />
       ) : (
@@ -285,6 +316,21 @@ const styles = StyleSheet.create({
   interestChipTextSelected: {
     color: '#121212',
     fontWeight: 'bold',
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  termsText: {
+    flex: 1,
+    color: '#ccc',
+    fontSize: 14,
+    marginLeft: 10,
+  },
+  termsLink: {
+    color: '#bb86fc',
+    textDecorationLine: 'underline',
   },
   loader: {
     marginVertical: 20,

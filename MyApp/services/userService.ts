@@ -15,6 +15,8 @@ export interface UserProfile {
   createdAt?: any;
   isAdmin?: boolean;
   isMentor?: boolean;
+  termsAcceptedAt?: string | null;
+  termsVersion?: string | null;
 }
 
 type ProfileRow = Tables<'profiles'>;
@@ -28,6 +30,8 @@ export const profileFromRow = (row: ProfileRow, extra: Partial<UserProfile> = {}
   interests: row.interests,
   origin: row.origin ?? undefined,
   createdAt: row.created_at,
+  termsAcceptedAt: row.terms_accepted_at,
+  termsVersion: row.terms_version,
   ...extra,
 });
 
