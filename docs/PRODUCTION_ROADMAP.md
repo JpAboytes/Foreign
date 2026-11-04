@@ -72,7 +72,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [ ] E2E con Maestro de los flujos críticos: registro, login, post, foro, chat, borrar cuenta
 
 ### Fase 5 — Lanzamiento (`release-manager`)
-- [ ] Perfiles de `eas.json` con variables por entorno (dev, preview, prod) y proyecto Supabase de staging
+- [~] Perfiles de `eas.json` con entorno y canal por perfil (development/preview/production; variables con `eas env:create --environment <env>`) — hecho 2026-11-04. Pendiente: proyecto Supabase de staging (el plan puede generar gasto; decisión del dueño) y crear las variables en EAS
 - [ ] Credenciales gestionadas por EAS; App Store Connect API key; service account de Play
 - [ ] TestFlight + Play Internal Testing → cerrado → producción
 - [ ] Fichas de las tiendas: textos, screenshots, clasificación por edad, Data Safety, cuenta demo
