@@ -5,6 +5,7 @@ import {
   deleteComment,
   Comment
 } from '../services/commentService';
+import { getBlockedIds } from '../services/moderationService';
 import { UserProfile } from '../services/userService';
 
 // currentUser es siempre el usuario de la sesión (no el perfil que se está viendo).
@@ -28,7 +29,9 @@ export function useComments(postId: string | null, currentUser: UserProfile | nu
     
     setLoading(true);
     try {
-      const fetchedComments = await getPostComments(postId);
+      // Si falla la lista de bloqueados, se muestran los comentarios sin filtrar antes que ninguno.
+      const blockedIds = currentUser?.uid ? await getBlockedIds(currentUser.uid).catch(() => []) : [];
+      const fetchedComments = await getPostComments(postId, blockedIds);
       setComments(fetchedComments);
     } catch (error) {
       console.error('Error loading comments:', error);

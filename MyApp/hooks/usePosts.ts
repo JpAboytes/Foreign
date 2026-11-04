@@ -6,7 +6,7 @@ import {
   deletePost
 } from '../services/postService';
 import { getFriendIds } from '../services/profileService';
-import { getBlockedIds, blockUser } from '../services/moderationService';
+import { getBlockedIds } from '../services/moderationService';
 import { Post } from '../services/postService';
 import { UserProfile } from '../services/userService';
 
@@ -92,16 +92,10 @@ export function usePosts(currentUser: UserProfile | null) {
     }
   };
 
-  // Bloquear al autor del post abierto y ocultar su contenido
-  const handleBlockAuthor = async (authorId: string) => {
-    if (!currentUser?.uid) return;
-    try {
-      await blockUser(currentUser.uid, authorId);
-      setSelectedPost(null);
-      fetchPosts();
-    } catch (error) {
-      console.error('Error blocking user:', error);
-    }
+  // Tras bloquear a un autor (el bloqueo lo hace ModerationActions): cerrar el post y ocultar su contenido
+  const handleAuthorBlocked = () => {
+    setSelectedPost(null);
+    fetchPosts();
   };
 
   return {
@@ -115,6 +109,6 @@ export function usePosts(currentUser: UserProfile | null) {
     refreshPosts,
     handleToggleLike,
     handleDeletePost,
-    handleBlockAuthor
+    handleAuthorBlocked
   };
 }

@@ -3,6 +3,8 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput, Image, A
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../../context/UserContext';
+import ModerationActions from '../../components/moderation/ModerationActions';
+import { getBlockedIds } from '../../services/moderationService';
 import { ForumAnswer, ForumComment, addAnswerComment, getAnswer, getAnswerComments, toggleAnswerLike } from '../../services/forumService';
 import { formatTimeAgo } from '../../utils/formatters';
 
@@ -21,14 +23,15 @@ export default function AnswerDetailScreen() {
   const loadComments = useCallback(async () => {
     if (!answerId) return;
     try {
-      setComments(await getAnswerComments(answerId as string));
+      const blockedIds = user?.id ? await getBlockedIds(user.id).catch(() => []) : [];
+      setComments(await getAnswerComments(answerId as string, blockedIds));
     } catch (error) {
       console.error('Error al obtener comentarios:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [answerId]);
+  }, [answerId, user?.id]);
 
   // Cargar la respuesta
   useEffect(() => {
@@ -98,6 +101,17 @@ export default function AnswerDetailScreen() {
             </Text>
           </View>
         </View>
+        <ModerationActions
+          currentUserId={user?.id}
+          authorId={item.user.id}
+          authorName={item.user.name}
+          // Los comentarios de respuestas del foro no tienen tipo propio en reports: se reporta al autor.
+          targetType="user"
+          targetId={item.user.id}
+          reportTitle="Reportar al autor del comentario"
+          onBlocked={loadComments}
+          size={20}
+        />
       </View>
       <Text style={styles.commentContent}>{item.content}</Text>
       <View style={styles.commentFooter}>
@@ -142,6 +156,16 @@ export default function AnswerDetailScreen() {
             </Text>
           </View>
         </View>
+        <ModerationActions
+          currentUserId={user?.id}
+          authorId={answer.userId}
+          authorName={answer.user.name}
+          targetType="forum_answer"
+          targetId={answer.id}
+          reportTitle="Reportar respuesta"
+          onBlocked={() => router.back()}
+          style={{ marginLeft: 'auto' }}
+        />
       </View>
       
       <Text style={styles.answerContent}>{answer.content}</Text>
@@ -240,6 +264,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   answerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
     borderColor: '#333',

@@ -3,6 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Image, A
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../../context/UserContext';
+import ModerationActions from '../../components/moderation/ModerationActions';
+import { getBlockedIds } from '../../services/moderationService';
 import { ForumAnswer, ForumQuestion, createAnswer, getAnswers, getQuestionDetail } from '../../services/forumService';
 import { formatTimeAgo } from '../../utils/formatters';
 
@@ -20,7 +22,8 @@ export default function QuestionDetailScreen() {
   const loadAnswers = useCallback(async () => {
     if (!questionId) return;
     try {
-      setAnswers(await getAnswers(questionId as string, user?.id));
+      const blockedIds = user?.id ? await getBlockedIds(user.id).catch(() => []) : [];
+      setAnswers(await getAnswers(questionId as string, user?.id, blockedIds));
     } catch (error) {
       console.error('Error al obtener respuestas:', error);
     } finally {
@@ -127,6 +130,16 @@ export default function QuestionDetailScreen() {
               <Text style={styles.timestamp}>{formatTimeAgo(question.timestamp)}</Text>
             </View>
           </TouchableOpacity>
+          <ModerationActions
+            currentUserId={user?.id}
+            authorId={question.user?.id}
+            authorName={question.user?.name}
+            targetType="forum_question"
+            targetId={question.id}
+            reportTitle="Reportar pregunta"
+            onBlocked={() => router.back()}
+            style={{ marginLeft: 'auto' }}
+          />
         </View>
         <Text style={styles.questionTitle}>{question.title}</Text>
       </View>
@@ -169,6 +182,16 @@ export default function QuestionDetailScreen() {
                   <Text style={styles.timestamp}>{formatTimeAgo(item.timestamp)}</Text>
                 </View>
               </TouchableOpacity>
+              <ModerationActions
+                currentUserId={user?.id}
+                authorId={item.userId}
+                authorName={item.user?.name}
+                targetType="forum_answer"
+                targetId={item.id}
+                reportTitle="Reportar respuesta"
+                onBlocked={loadAnswers}
+                style={{ marginLeft: 'auto' }}
+              />
             </View>
             <Text style={styles.answerText}>{item.content}</Text>
             <View style={styles.answerFooter}>
@@ -249,6 +272,7 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 16,
   },
   avatar: { 

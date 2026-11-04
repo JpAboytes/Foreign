@@ -41,7 +41,7 @@ export default function FeedScreen() {
     refreshPosts,
     handleToggleLike,
     handleDeletePost,
-    handleBlockAuthor
+    handleAuthorBlocked
   } = usePosts(currentUserData);
 
   const {
@@ -143,7 +143,7 @@ export default function FeedScreen() {
           onClose={closeModal}
           onToggleLike={handleToggleLike}
           onDeletePost={handleDeletePost}
-          onBlockAuthor={handleBlockAuthor}
+          onAuthorBlocked={handleAuthorBlocked}
           isLiked={isLiked}
           comments={comments}
           newComment={newComment}

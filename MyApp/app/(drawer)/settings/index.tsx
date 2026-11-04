@@ -156,6 +156,18 @@ export default function SettingsScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Cuenta</Text>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => router.push('/extra/blockedUsers')}
+              accessibilityLabel="Usuarios bloqueados"
+            >
+              <View style={styles.settingInfo}>
+                <Ionicons name="ban-outline" size={22} color="#bb86fc" />
+                <Text style={styles.settingText}>Usuarios bloqueados</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#888" />
+            </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.dangerButton} 

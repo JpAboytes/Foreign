@@ -22,7 +22,7 @@ export default function ForumScreen() {
     refreshing, 
     addQuestion, 
     refreshQuestions 
-  } = useForumQuestions();
+  } = useForumQuestions(user?.id);
 
   const handleAddQuestion = async () => {
     if (!questionText.trim() || !user) return;
@@ -62,6 +62,8 @@ export default function ForumScreen() {
               question={item} 
               onPress={() => navigateToQuestionDetail(item)} 
               onUserPress={(userId) => router.push(`/extra/friendProfile?uid=${userId}`)}
+              currentUserId={user?.id}
+              onAuthorBlocked={refreshQuestions}
             />
           )}
           ListEmptyComponent={<EmptyForum />}

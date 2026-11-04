@@ -1,21 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getBlockedIds } from '../services/moderationService';
 import { getQuestions, createQuestion, ForumQuestion } from '../services/forumService';
 
-export function useForumQuestions() {
+export function useForumQuestions(userId?: string | null) {
   const [questions, setQuestions] = useState<ForumQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadQuestions = useCallback(async () => {
     try {
-      setQuestions(await getQuestions());
+      const blockedIds = userId ? await getBlockedIds(userId).catch(() => []) : [];
+      setQuestions(await getQuestions(blockedIds));
     } catch (error) {
       console.error('Error al cargar preguntas:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     loadQuestions();
