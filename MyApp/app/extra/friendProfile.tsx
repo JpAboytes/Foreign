@@ -21,6 +21,7 @@ import { useProfile } from '../../hooks/useProfile';
 import PostDetailModal from '../../components/feed/PostDetailModal';
 import { usePosts } from '../../hooks/usePosts';
 import { useComments } from '../../hooks/useComments';
+import ModerationActions from '../../components/moderation/ModerationActions';
 import { Post } from '../../services/postService';
 
 
@@ -59,7 +60,7 @@ export default function FriendProfile() {
     setSelectedPost,
     handleToggleLike,
     handleDeletePost,
-    handleBlockAuthor
+    handleAuthorBlocked
   } = usePosts(currentUserProfile);
   
   // Usar el hook useComments existente
@@ -145,6 +146,19 @@ export default function FriendProfile() {
                 onSelectPhoto={handleSelectProfilePhoto}
               />
               
+              {!isOwnProfile && profile && (
+                <ModerationActions
+                  currentUserId={currentUserId}
+                  authorId={targetUserId}
+                  authorName={profile.name}
+                  targetType="user"
+                  targetId={targetUserId}
+                  reportTitle="Reportar usuario"
+                  onBlocked={() => router.back()}
+                  style={{ justifyContent: 'flex-end', marginBottom: 12 }}
+                />
+              )}
+
               <Text style={styles.sectionTitle}>Publicaciones</Text>
               
               <ProfilePostsGrid
@@ -163,7 +177,7 @@ export default function FriendProfile() {
           onClose={closeModal}
           onToggleLike={handleToggleLike}
           onDeletePost={handleDeletePost}
-          onBlockAuthor={handleBlockAuthor}
+          onAuthorBlocked={handleAuthorBlocked}
           isLiked={isLiked}
           comments={comments}
           newComment={newComment}

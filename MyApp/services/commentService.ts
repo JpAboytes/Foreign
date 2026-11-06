@@ -1,4 +1,5 @@
 import { supabase } from './supabase/client';
+import { excludeBlocked } from './moderationService';
 
 // Interfaces
 export interface Comment {
@@ -33,7 +34,8 @@ const toComment = (row: CommentRow): Comment => ({
 const COMMENT_SELECT = 'id, text, created_at, author:profiles!comments_user_id_fkey!inner(id, name, photo_url)';
 
 // Obtener comentarios de una publicación
-export const getPostComments = async (postId: string): Promise<Comment[]> => {
+// `blockedIds`: autores bloqueados por el usuario, cuyos comentarios se ocultan.
+export const getPostComments = async (postId: string, blockedIds: string[] = []): Promise<Comment[]> => {
   const { data, error } = await supabase
     .from('comments')
     .select(COMMENT_SELECT)
@@ -43,7 +45,7 @@ export const getPostComments = async (postId: string): Promise<Comment[]> => {
     console.error(`Error getting comments for post ${postId}:`, error);
     throw error;
   }
-  return (data as unknown as CommentRow[]).map(toComment);
+  return excludeBlocked((data as unknown as CommentRow[]).map(toComment), blockedIds, (c) => c.user.id);
 };
 
 // Añadir un comentario. La notificación al autor del post la crea un trigger.

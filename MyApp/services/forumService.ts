@@ -1,4 +1,5 @@
 import { supabase } from './supabase/client';
+import { excludeBlocked } from './moderationService';
 
 export interface ForumUser {
   id: string;
@@ -88,14 +89,15 @@ const toAnswer = (row: AnswerRow, currentUserId?: string): ForumAnswer => ({
 });
 
 // Preguntas más recientes con su conteo de respuestas
-export const getQuestions = async (): Promise<ForumQuestion[]> => {
+// `blockedIds`: autores bloqueados por el usuario, cuyo contenido se oculta.
+export const getQuestions = async (blockedIds: string[] = []): Promise<ForumQuestion[]> => {
   const { data, error } = await supabase
     .from('forum_questions')
     .select(QUESTION_SELECT)
     .order('created_at', { ascending: false })
     .limit(100);
   if (error) throw error;
-  return (data as unknown as QuestionRow[]).map(toQuestion);
+  return excludeBlocked((data as unknown as QuestionRow[]).map(toQuestion), blockedIds, (q) => q.user.id);
 };
 
 // Crear una nueva pregunta
@@ -121,14 +123,22 @@ export const getQuestionDetail = async (questionId: string): Promise<ForumQuesti
 };
 
 // Respuestas de una pregunta (más recientes primero)
-export const getAnswers = async (questionId: string, currentUserId?: string): Promise<ForumAnswer[]> => {
+export const getAnswers = async (
+  questionId: string,
+  currentUserId?: string,
+  blockedIds: string[] = []
+): Promise<ForumAnswer[]> => {
   const { data, error } = await supabase
     .from('forum_answers')
     .select(ANSWER_SELECT)
     .eq('question_id', questionId)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data as unknown as AnswerRow[]).map((row) => toAnswer(row, currentUserId));
+  return excludeBlocked(
+    (data as unknown as AnswerRow[]).map((row) => toAnswer(row, currentUserId)),
+    blockedIds,
+    (a) => a.userId
+  );
 };
 
 // Una respuesta
@@ -162,14 +172,14 @@ export const toggleAnswerLike = async (answerId: string, userId: string, isLiked
 };
 
 // Comentarios de una respuesta (más recientes primero)
-export const getAnswerComments = async (answerId: string): Promise<ForumComment[]> => {
+export const getAnswerComments = async (answerId: string, blockedIds: string[] = []): Promise<ForumComment[]> => {
   const { data, error } = await supabase
     .from('forum_answer_comments')
     .select('id, content, created_at, author:profiles!forum_answer_comments_user_id_fkey!inner(id, name, photo_url)')
     .eq('answer_id', answerId)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data as unknown as (Omit<ForumComment, 'user' | 'timestamp' | 'likes'> & { created_at: string; author: AuthorRow })[])
+  const comments = (data as unknown as (Omit<ForumComment, 'user' | 'timestamp' | 'likes'> & { created_at: string; author: AuthorRow })[])
     .map((row) => ({
       id: row.id,
       content: row.content,
@@ -177,6 +187,7 @@ export const getAnswerComments = async (answerId: string): Promise<ForumComment[
       user: toForumUser(row.author),
       likes: 0,
     }));
+  return excludeBlocked(comments, blockedIds, (c) => c.user.id);
 };
 
 // Comentar una respuesta. La notificación al autor de la respuesta la crea un trigger.

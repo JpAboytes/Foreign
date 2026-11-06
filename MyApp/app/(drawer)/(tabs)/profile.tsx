@@ -59,7 +59,7 @@ export default function ProfileScreen() {
     setSelectedPost,
     handleToggleLike,
     handleDeletePost,
-    handleBlockAuthor
+    handleAuthorBlocked
   } = usePosts(currentUserProfile);
   
   // Usar el hook useComments existente
@@ -163,7 +163,7 @@ export default function ProfileScreen() {
           onClose={closeModal}
           onToggleLike={handleToggleLike}
           onDeletePost={handleDeletePost}
-          onBlockAuthor={handleBlockAuthor}
+          onAuthorBlocked={handleAuthorBlocked}
           isLiked={isLiked}
           comments={comments}
           newComment={newComment}

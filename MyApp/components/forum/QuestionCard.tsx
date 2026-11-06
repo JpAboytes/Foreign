@@ -3,11 +3,14 @@ import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ForumQuestion } from '../../services/forumService';
 import { formatTimeAgo } from '../../utils/formatters';
+import ModerationActions from '../moderation/ModerationActions';
 
 interface QuestionCardProps {
   question: ForumQuestion;
   onPress: () => void;
   onUserPress: (userId: string) => void;
+  currentUserId?: string | null;
+  onAuthorBlocked?: (authorId: string) => void;
 }
 
 const renderAvatar = (source: any) => {
@@ -30,7 +33,7 @@ const renderAvatar = (source: any) => {
   }
 };
 
-export default function QuestionCard({ question, onPress, onUserPress }: QuestionCardProps) {
+export default function QuestionCard({ question, onPress, onUserPress, currentUserId, onAuthorBlocked }: QuestionCardProps) {
   return (
     <TouchableOpacity 
       style={styles.card} 
@@ -53,6 +56,15 @@ export default function QuestionCard({ question, onPress, onUserPress }: Questio
             </View>
           </TouchableOpacity>
         </View>
+        <ModerationActions
+          currentUserId={currentUserId}
+          authorId={question.user.id}
+          authorName={question.user.name}
+          targetType="forum_question"
+          targetId={question.id}
+          reportTitle="Reportar pregunta"
+          onBlocked={onAuthorBlocked}
+        />
       </View>
 
       <Text style={styles.title}>{question.title}</Text>

@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Post } from '../../services/postService';
 import { Comment } from '../../services/commentService';
 import { useRouter } from 'expo-router';
-import { reportContent, REPORT_REASONS } from '../../services/moderationService';
+import ModerationActions from '../moderation/ModerationActions';
 
 interface PostDetailModalProps {
   post: Post | null;
@@ -25,7 +25,8 @@ interface PostDetailModalProps {
   onClose: () => void;
   onToggleLike: () => void;
   onDeletePost: (postId: string) => void;
-  onBlockAuthor?: (authorId: string) => void;
+  // Se llama tras bloquear al autor de la publicación o de un comentario.
+  onAuthorBlocked?: (authorId: string) => void;
   isLiked: boolean;
   comments: Comment[];
   newComment: string;
@@ -41,7 +42,7 @@ export default function PostDetailModal({
   onClose,
   onToggleLike,
   onDeletePost,
-  onBlockAuthor,
+  onAuthorBlocked,
   isLiked,
   comments,
   newComment,
@@ -53,27 +54,6 @@ export default function PostDetailModal({
   const router = useRouter();
 
   if (!post) return null;
-
-  const sendReport = async (reason: string) => {
-    try {
-      await reportContent(currentUserId, 'post', post.id, reason);
-      Alert.alert('Reporte enviado', 'Gracias. Revisaremos la publicación.');
-    } catch {
-      Alert.alert('Error', 'No se pudo enviar el reporte. Intenta de nuevo.');
-    }
-  };
-
-  const openReportMenu = () =>
-    Alert.alert('Reportar publicación', 'Elige el motivo', [
-      ...REPORT_REASONS.map((reason) => ({ text: reason, onPress: () => sendReport(reason) })),
-      { text: 'Cancelar', style: 'cancel' as const },
-    ]);
-
-  const confirmBlock = () =>
-    Alert.alert('Bloquear usuario', `No verás más las publicaciones de ${post.user?.name || 'este usuario'}.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Bloquear', style: 'destructive', onPress: () => onBlockAuthor?.(post.userId) },
-    ]);
 
   return (
     <Modal
@@ -129,18 +109,17 @@ export default function PostDetailModal({
           )}
 
           {/* Reportar / bloquear (solo publicaciones de otros) */}
-          {post.userId !== currentUserId && (
-            <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'flex-end', gap: 16, marginTop: 8 }}>
-              <TouchableOpacity onPress={openReportMenu} accessibilityLabel="Reportar publicación">
-                <Ionicons name="flag-outline" size={24} color="#ffb74d" />
-              </TouchableOpacity>
-              {onBlockAuthor && (
-                <TouchableOpacity onPress={confirmBlock} accessibilityLabel="Bloquear usuario">
-                  <Ionicons name="ban-outline" size={24} color="red" />
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+          <ModerationActions
+            currentUserId={currentUserId}
+            authorId={post.userId}
+            authorName={post.user?.name}
+            targetType="post"
+            targetId={post.id}
+            reportTitle="Reportar publicación"
+            onBlocked={onAuthorBlocked}
+            size={24}
+            style={{ width: '100%', justifyContent: 'flex-end', marginTop: 8 }}
+          />
 
           {/* Content/Caption */}
           <View style={styles.detailContent}>
@@ -188,6 +167,19 @@ export default function PostDetailModal({
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: '#333' }}>{comment.text}</Text>
                     </View>
+                    {comment.id && (
+                      <ModerationActions
+                        currentUserId={currentUserId}
+                        authorId={comment.user?.id}
+                        authorName={comment.user?.name}
+                        targetType="comment"
+                        targetId={comment.id}
+                        reportTitle="Reportar comentario"
+                        onBlocked={onAuthorBlocked}
+                        size={18}
+                        style={{ gap: 10 }}
+                      />
+                    )}
                   </View>
                 ))
               ) : (

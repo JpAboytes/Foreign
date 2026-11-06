@@ -36,6 +36,7 @@ export default function ExtraLayout() {
       <Stack.Screen name="mentorList" options={{ title: 'Mentores' }} />
       <Stack.Screen name="mentorChat" options={{ title: 'Chat con Mentor' }} />
       <Stack.Screen name="friendRequest" options={{ title: 'Buscar Amigos' }} />
+      <Stack.Screen name="blockedUsers" options={{ title: 'Usuarios bloqueados' }} />
       {/* Si tienes más pantallas en 'extra', añádelas aquí */}
 
     </Stack>

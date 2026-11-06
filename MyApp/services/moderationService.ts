@@ -53,6 +53,46 @@ export const getBlockedIds = async (userId: string): Promise<string[]> => {
   return (data ?? []).map((row) => row.blocked_id);
 };
 
+export interface BlockedUser {
+  id: string;
+  name: string;
+  photoUrl?: string;
+  blockedAt: string;
+}
+
+// Usuarios que `userId` bloqueó, con nombre y foto (más recientes primero) para la pantalla de desbloqueo.
+export const listBlockedUsers = async (userId: string): Promise<BlockedUser[]> => {
+  const { data, error } = await supabase
+    .from('blocks')
+    .select('blocked_id, created_at')
+    .eq('blocker_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  const rows = (data ?? []) as { blocked_id: string; created_at: string }[];
+  if (rows.length === 0) return [];
+
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, name, photo_url')
+    .in('id', rows.map((r) => r.blocked_id));
+  const byId = new Map<string, { name?: string; photo_url?: string | null }>(
+    ((profiles ?? []) as any[]).map((p) => [p.id, p])
+  );
+  return rows.map((r) => ({
+    id: r.blocked_id,
+    name: byId.get(r.blocked_id)?.name || 'Usuario',
+    photoUrl: byId.get(r.blocked_id)?.photo_url || undefined,
+    blockedAt: r.created_at,
+  }));
+};
+
+// Quita los elementos cuyo autor está bloqueado.
+export const excludeBlocked = <T>(items: T[], blockedIds: string[], authorOf: (item: T) => string): T[] => {
+  if (blockedIds.length === 0) return items;
+  const blocked = new Set(blockedIds);
+  return items.filter((item) => !blocked.has(authorOf(item)));
+};
+
 // ---------------------------------------------------------------------------
 // Cola de moderación (panel admin). RLS solo deja leer/actualizar todos los reportes a un admin.
 // ---------------------------------------------------------------------------
