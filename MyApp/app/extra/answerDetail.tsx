@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../../context/UserContext';
@@ -93,7 +94,7 @@ export default function AnswerDetailScreen() {
     <View style={styles.commentCard}>
       <View style={styles.commentHeader}>
         <View style={styles.userInfo}>
-          <Image source={renderAvatar(item.user.photo)} style={styles.avatar} />
+          <Image cachePolicy="memory-disk" transition={200} source={renderAvatar(item.user.photo)} style={styles.avatar} />
           <View>
             <Text style={styles.userName}>{item.user.name}</Text>
             <Text style={styles.timestamp}>
@@ -148,7 +149,7 @@ export default function AnswerDetailScreen() {
     <View style={styles.container}>
       <View style={styles.answerHeader}>
         <View style={styles.userInfo}>
-          <Image source={renderAvatar(answer.user.photo)} style={styles.avatar} />
+          <Image cachePolicy="memory-disk" transition={200} source={renderAvatar(answer.user.photo)} style={styles.avatar} />
           <View>
             <Text style={styles.userName}>{answer.user.name}</Text>
             <Text style={styles.timestamp}>

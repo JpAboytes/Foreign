@@ -3,10 +3,10 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  Image, 
   TouchableOpacity, 
   Platform 
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { UserProfile } from '../../services/userService';
 import { FollowStatus } from '../../services/profileService';
@@ -117,7 +117,7 @@ export default function ProfileHeader({
             onPress={isOwnProfile ? onSelectPhoto : undefined}
             disabled={!isOwnProfile}
           >
-            <Image
+            <Image cachePolicy="memory-disk" transition={200}
               source={
                 profile.photo
                   ? { uri: profile.photo }

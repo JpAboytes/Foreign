@@ -4,7 +4,6 @@ import {
     View,
     Text,
     StyleSheet,
-    Image,
     FlatList,
     TouchableOpacity,
     ActivityIndicator,
@@ -16,6 +15,7 @@ import {
     RefreshControl,
     Alert // <-- Add Alert here
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUser } from '../../context/UserContext'; // <-- Import useUser
 import * as ImagePicker from 'expo-image-picker';
@@ -133,7 +133,7 @@ export default function EditProfileScreen() {
     return (
         <ScrollView style={styles.container}>
             <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
-                <Image
+                <Image cachePolicy="memory-disk" transition={200}
                     // Use the state variable 'profileImage'. Handle URI vs default.
                     source={profileImage ? { uri: profileImage } : defaultUserImage}
                     style={styles.avatar}

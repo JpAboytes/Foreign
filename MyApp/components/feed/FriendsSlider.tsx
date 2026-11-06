@@ -4,10 +4,10 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Image,
   TouchableOpacity,
   Dimensions
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Post } from '../../services/postService';
 
 const { width } = Dimensions.get('window');
@@ -52,17 +52,17 @@ export default function FriendsSlider({ friendPosts, onPressItem }: FriendsSlide
             style={{ width: sliderWidth }}
           >
             <View style={[styles.roundedContainer, { width: sliderWidth }]}>
-              <Image
+              <Image cachePolicy="memory-disk" transition={200}
                 source={
                   typeof item.image === 'string'
                     ? { uri: item.image } 
                     : item.image
                 }
                 style={[styles.sliderImage, { width: sliderWidth, height: sliderWidth * 0.7 }]}
-                resizeMode="cover"
+                contentFit="cover"
               />
               <View style={styles.sliderOverlay}>
-                <Image 
+                <Image cachePolicy="memory-disk" transition={200} 
                   source={item.user?.image || require('../../assets/images/img7.jpg')} 
                   style={styles.publisherImage} 
                 />

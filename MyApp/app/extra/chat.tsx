@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  View, Text, Image, TextInput, TouchableOpacity,
+  View, Text, TextInput, TouchableOpacity,
   FlatList, StyleSheet, Platform,
   KeyboardAvoidingView, useWindowDimensions
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // <-- importar
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
@@ -120,7 +121,7 @@ export default function ChatScreen() {
       <MaxWidthContainer style={{maxWidth: 768}}>
         {/* header y FlatList… */}
         <View style={styles.profileHeader}>
-          <Image
+          <Image cachePolicy="memory-disk" transition={200}
             source={photoUri ? { uri: photoUri } : defaultUserImage}
             style={styles.profileImage}
           />

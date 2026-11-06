@@ -5,7 +5,6 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  Image,
   Alert,
   RefreshControl,
   ActivityIndicator,
@@ -13,6 +12,7 @@ import {
   ScrollView,
   Platform
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import MaxWidthContainer from '../../components/MaxWidthContainer';
 import { getCurrentUser } from '../../services/auth';
@@ -178,7 +178,7 @@ export default function friendRequest() {
             </View>
           )}
           
-          <Image
+          <Image cachePolicy="memory-disk" transition={200}
             source={item.photo ? { uri: item.photo } : require('../../assets/images/img7.jpg')}
             style={styles.avatar}
           />

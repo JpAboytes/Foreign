@@ -2,14 +2,14 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   Modal,
   Platform,
-  KeyboardAvoidingView,
+  KeyboardAvoidingView
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { UserProfile } from '../../services/userService';
 interface MentorDetailModalProps {
@@ -41,7 +41,7 @@ export default function MentorDetailModal({ mentor, isVisible, onClose }: Mentor
             </TouchableOpacity>
 
             {/* Imagen del mentor */}
-            <Image
+            <Image cachePolicy="memory-disk" transition={200}
               source={
                 mentor.photo
                   ? typeof mentor.photo === 'string'

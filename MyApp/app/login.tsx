@@ -7,9 +7,8 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
-  Image
-} from 'react-native';
+  ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
@@ -114,7 +113,7 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.contentWrapper}>
             <View style={styles.logoContainer}>
-              <Image source={require('../assets/images/logo.png.jpeg')} style={styles.logo} />
+              <Image cachePolicy="memory-disk" transition={200} source={require('../assets/images/logo.png.jpeg')} style={styles.logo} />
               <Text style={styles.appName}>Foreign</Text>
             </View>
             

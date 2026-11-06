@@ -11,9 +11,9 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
-  Image,
   ScrollView
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons, Feather, MaterialIcons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   listAdminItems,
@@ -238,7 +238,7 @@ export default function ManagementScreen() {
       <View style={styles.itemInfo}>
         <View style={styles.avatarContainer}>
           {user.photoURL ? (
-            <Image source={{ uri: user.photoURL }} style={styles.avatar} />
+            <Image cachePolicy="memory-disk" transition={200} source={{ uri: user.photoURL }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.defaultAvatar]}>
               <Text style={styles.avatarText}>{user.name ? user.name.charAt(0).toUpperCase() : '?'}</Text>
@@ -276,7 +276,7 @@ export default function ManagementScreen() {
       <View style={styles.itemInfo}>
         <View style={styles.avatarContainer}>
           {mentor.photoURL ? (
-            <Image source={{ uri: mentor.photoURL }} style={styles.avatar} />
+            <Image cachePolicy="memory-disk" transition={200} source={{ uri: mentor.photoURL }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.defaultAvatar]}>
               <Text style={styles.avatarText}>{mentor.name ? mentor.name.charAt(0).toUpperCase() : '?'}</Text>
@@ -315,10 +315,10 @@ export default function ManagementScreen() {
       <View style={styles.itemInfo}>
         {post.image && (
           <View style={styles.postImageContainer}>
-            <Image 
+            <Image cachePolicy="memory-disk" transition={200} 
               source={{ uri: post.image }} 
               style={styles.postThumbnail}
-              resizeMode="cover"
+              contentFit="cover"
             />
           </View>
         )}
@@ -362,10 +362,10 @@ export default function ManagementScreen() {
       <View style={styles.itemInfo}>
         {location.imageUrl && (
           <View style={styles.locationImageContainer}>
-            <Image 
+            <Image cachePolicy="memory-disk" transition={200} 
               source={{ uri: location.imageUrl }} 
               style={styles.locationThumbnail}
-              resizeMode="cover"
+              contentFit="cover"
             />
           </View>
         )}
