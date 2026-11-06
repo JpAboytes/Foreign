@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
 import { useUser } from '../../context/UserContext';
 import MaxWidthContainer from '../../components/MaxWidthContainer';
@@ -67,6 +68,8 @@ export default function BlockedUsersScreen() {
               <Image
                 source={item.photoUrl ? { uri: item.photoUrl } : require('../../assets/images/img7.jpg')}
                 style={styles.avatar}
+                cachePolicy="memory-disk"
+                transition={200}
               />
               <Text style={styles.name} numberOfLines={1}>
                 {item.name}
