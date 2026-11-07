@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  View, Text, StyleSheet, Image, TouchableOpacity, 
+  View, Text, StyleSheet, TouchableOpacity, 
   ActivityIndicator, RefreshControl, ScrollView 
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../../context/NotificationContext';
@@ -353,7 +354,7 @@ export default function NotificationsScreen() {
               onPress={() => handleNotificationPress(item)}
             >
               <View style={styles.avatarContainer}>
-                <Image 
+                <Image cachePolicy="memory-disk" transition={200} 
                     source={renderAvatar(item)} 
                   style={styles.avatar} 
                 />

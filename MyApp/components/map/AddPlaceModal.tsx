@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Modal, ScrollView, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, Text, Modal, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { styles } from './mapScreenStyles';
 
 type Props = {
@@ -54,7 +55,7 @@ export default function AddPlaceModal({
           {images.length > 0 && (
             <View style={styles.selectedImagesContainer}>
               {images.map((uri, index) => (
-                <Image key={index} source={{ uri }} style={styles.selectedImagePreview} resizeMode="cover" />
+                <Image cachePolicy="memory-disk" transition={200} key={index} source={{ uri }} style={styles.selectedImagePreview} contentFit="cover" />
               ))}
             </View>
           )}

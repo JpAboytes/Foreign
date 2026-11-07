@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import type {
   AdminCategory,
@@ -23,7 +24,7 @@ function Avatar({ photoURL, name }: { photoURL?: string; name?: string }) {
   return (
     <View style={styles.avatarContainer}>
       {photoURL ? (
-        <Image source={{ uri: photoURL }} style={styles.avatar} />
+        <Image cachePolicy="memory-disk" transition={200} source={{ uri: photoURL }} style={styles.avatar} />
       ) : (
         <View style={[styles.avatar, styles.defaultAvatar]}>
           <Text style={styles.avatarText}>{name ? name.charAt(0).toUpperCase() : '?'}</Text>
@@ -63,7 +64,7 @@ function PostInfo({ post }: { post: AdminPost }) {
     <>
       {post.image && (
         <View style={styles.postImageContainer}>
-          <Image source={{ uri: post.image }} style={styles.postThumbnail} resizeMode="cover" />
+          <Image cachePolicy="memory-disk" transition={200} source={{ uri: post.image }} style={styles.postThumbnail} contentFit="cover" />
         </View>
       )}
       <View style={styles.itemDetails}>
@@ -85,7 +86,7 @@ function LocationInfo({ location }: { location: AdminLocation }) {
     <>
       {location.imageUrl && (
         <View style={styles.locationImageContainer}>
-          <Image source={{ uri: location.imageUrl }} style={styles.locationThumbnail} resizeMode="cover" />
+          <Image cachePolicy="memory-disk" transition={200} source={{ uri: location.imageUrl }} style={styles.locationThumbnail} contentFit="cover" />
         </View>
       )}
       <View style={styles.itemDetails}>

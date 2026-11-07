@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   FlatList,
-  Image,
   TouchableOpacity,
   Text,
   SafeAreaView,
@@ -11,6 +10,7 @@ import {
   Platform,
   Dimensions
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useUser } from '../../../context/UserContext';
 import MaxWidthContainer from '../../../components/MaxWidthContainer';
@@ -93,18 +93,18 @@ export default function FeedScreen() {
   // Renderizar cada post
   const renderPost = ({ item }: { item: Post }) => (
     <TouchableOpacity style={styles.postCard} onPress={() => goToPostDetail(item)}>
-      <Image
+      <Image cachePolicy="memory-disk" transition={200}
         source={
           typeof item.image === 'string'
             ? { uri: item.image } 
             : item.image
         }
         style={styles.postImage}
-        resizeMode="cover"
+        contentFit="cover"
       />
       <View style={styles.postOverlay}>
         <View style={styles.postUserInfo}>
-          <Image
+          <Image cachePolicy="memory-disk" transition={200}
             source={item.user?.image || require('../../../assets/images/img7.jpg')}
             style={styles.postUserImage}
           />

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image } from 'react-native';
+import { View, Text } from 'react-native';
+import { Image } from 'expo-image';
 import { Marker } from 'react-native-maps';
 
 type Props = {
@@ -34,7 +35,7 @@ export default function PlaceMarker({ place, pinColor, onPress }: Props) {
         elevation: 5,
       }}>
         {place.imageUrl ? (
-          <Image source={{ uri: place.imageUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          <Image cachePolicy="memory-disk" transition={200} source={{ uri: place.imageUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         ) : (
           <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold' }}>
             {place.title.charAt(0)}

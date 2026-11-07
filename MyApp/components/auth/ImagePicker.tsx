@@ -3,10 +3,10 @@ import {
   View, 
   Text, 
   TouchableOpacity, 
-  Image, 
   StyleSheet, 
   Alert 
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImageService from '../../services/imageService';
 
@@ -44,7 +44,7 @@ export default function ImagePicker({
       
       {imageUri ? (
         <View style={styles.previewContainer}>
-          <Image 
+          <Image cachePolicy="memory-disk" transition={200} 
             source={{ uri: imageUri }} 
             style={styles.imagePreview} 
           />

@@ -50,7 +50,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 
 ### Fase 2 — Upgrade de Expo (`expo-upgrader`)
 - [x] Subir al SDK más reciente: SDK 58 (React Native 0.88, React 19.3, TypeScript 6, Reanimated 4 + worklets); `expo-doctor` vuelve a ser bloqueante en CI y la CI usa Node 22
-- [ ] Migrar a `expo-image` y `expo-apple-authentication` (`expo-notifications` ya instalado: push real, ver Fase 3)
+- [ ] Migrar a `expo-image` y `expo-apple-authentication` (`expo-notifications` ya instalado: push real, ver Fase 3) — `expo-image` hecho (2026-11-06): dependencia añadida y todos los `Image` de react-native (app/ y components/) migrados a `expo-image` con `contentFit`, `cachePolicy="memory-disk"` y `transition={200}`; pendiente de validar visualmente en dispositivo. `expo-apple-authentication` ya está instalado, en el plugin de `app.config.js` y usado en `services/auth.ts` (Sign in with Apple, Fase 3); la casilla sigue abierta hasta confirmarlo en un build de dispositivo
 - [ ] Development build con EAS en iOS y Android funcionando
 
 ### Fase 3 — Supabase (`supabase-architect` + `app-migrator`)

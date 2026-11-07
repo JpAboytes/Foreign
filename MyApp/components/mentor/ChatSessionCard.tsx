@@ -3,9 +3,9 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  Image, 
   TouchableOpacity 
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { ChatSession } from '../../services/mentorService';
 import { formatTimeAgo } from '../../utils/formatters';
@@ -30,7 +30,7 @@ export default function ChatSessionCard({
       activeOpacity={0.8}
     >
       <View style={styles.contentRow}>
-        <Image
+        <Image cachePolicy="memory-disk" transition={200}
           source={
             person?.photo 
               ? { uri: person.photo } 

@@ -2,10 +2,10 @@ import React from 'react';
 import { 
   View, 
   Text, 
-  Image, 
   StyleSheet, 
   TouchableOpacity 
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Mentor } from '../../services/mentorService';
 
@@ -22,7 +22,7 @@ export default function MentorCard({ mentor, onPress }: MentorCardProps) {
       activeOpacity={0.8}
     >
       <View style={styles.contentRow}>
-        <Image
+        <Image cachePolicy="memory-disk" transition={200}
           source={
             mentor.photo 
               ? { uri: mentor.photo } 

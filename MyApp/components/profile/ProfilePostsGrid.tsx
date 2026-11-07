@@ -4,11 +4,11 @@ import {
   Text, 
   StyleSheet, 
   FlatList, 
-  Image, 
   TouchableOpacity,
   Dimensions,
   Platform
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Post } from '../../services/postService';
 
@@ -60,7 +60,7 @@ export default function ProfilePostsGrid({
             style={styles.postItem}
             onPress={() => onPostPress(item)}
           >
-            <Image
+            <Image cachePolicy="memory-disk" transition={200}
               source={{ uri: item.image }}
               style={styles.postImage}
             />

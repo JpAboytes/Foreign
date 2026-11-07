@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Modal,
-  Image,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
@@ -13,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Post } from '../../services/postService';
 import { Comment } from '../../services/commentService';
@@ -82,7 +82,7 @@ export default function PostDetailModal({
             }}
             style={styles.authorContainer}
           >
-            <Image
+            <Image cachePolicy="memory-disk" transition={200}
               source={
                 post.user?.image || require('../../assets/images/img7.jpg')
               }
@@ -93,7 +93,7 @@ export default function PostDetailModal({
 
           {/* Image */}
           {post.image && (
-            <Image
+            <Image cachePolicy="memory-disk" transition={200}
               source={{ uri: post.image }}
               style={styles.detailImage}
             />
@@ -152,7 +152,7 @@ export default function PostDetailModal({
                       }}
                       style={{ flexDirection: 'row', alignItems: 'center' }}
                     >
-                      <Image
+                      <Image cachePolicy="memory-disk" transition={200}
                         source={
                           comment.user?.image
                             ? typeof comment.user.image === 'string'
