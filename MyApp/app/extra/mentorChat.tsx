@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Platform, KeyboardAvoidingView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Platform, KeyboardAvoidingView } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import type { ChatMessage } from '../../models/chat_message';
 
@@ -26,7 +27,7 @@ export default function MentorChatScreen() {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
         <View style={styles.mentorImageContainer}>
-          <Image source={mentor.image} style={styles.mentorImage} />
+          <Image cachePolicy="memory-disk" transition={200} source={mentor.image} style={styles.mentorImage} />
         </View>
         <Text style={styles.mentorName}>{mentor.name}</Text>
       </View>

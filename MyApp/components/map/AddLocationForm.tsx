@@ -6,10 +6,10 @@ import {
   TextInput, 
   TouchableOpacity, 
   ScrollView,
-  Image,
   Alert,
   ActivityIndicator
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
@@ -162,10 +162,10 @@ export default function AddLocationForm({
           </TouchableOpacity>
           
           {imageUri && (
-            <Image 
+            <Image cachePolicy="memory-disk" transition={200} 
               source={{ uri: imageUri }} 
               style={styles.previewImage} 
-              resizeMode="cover"
+              contentFit="cover"
             />
           )}
         </View>

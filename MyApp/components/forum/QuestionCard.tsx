@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { ForumQuestion } from '../../services/forumService';
 import { formatTimeAgo } from '../../utils/formatters';
@@ -46,7 +47,7 @@ export default function QuestionCard({ question, onPress, onUserPress, currentUs
             style={{ flexDirection: 'row', alignItems: 'center' }}
             onPress={() => onUserPress(question.user.id)}
           >
-            <Image 
+            <Image cachePolicy="memory-disk" transition={200} 
               source={renderAvatar(question.user.photo)} 
               style={styles.avatar} 
             />

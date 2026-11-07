@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Modal, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, Modal, ScrollView, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { styles } from './mapScreenStyles';
 
 type Props = {
@@ -18,13 +19,13 @@ export default function PlaceDetailModal({ visible, place, owner, onClose }: Pro
             <ScrollView contentContainerStyle={styles.modalContent}>
               {owner && (
                 <View style={styles.ownerInfoContainer}>
-                  <Image source={owner.photo} style={styles.ownerAvatar} resizeMode="cover" />
+                  <Image cachePolicy="memory-disk" transition={200} source={owner.photo} style={styles.ownerAvatar} contentFit="cover" />
                   <Text style={styles.ownerName}>{owner.name}</Text>
                 </View>
               )}
 
               {place.imageUrl ? (
-                <Image source={{ uri: place.imageUrl }} style={styles.placeImage} resizeMode="cover" />
+                <Image cachePolicy="memory-disk" transition={200} source={{ uri: place.imageUrl }} style={styles.placeImage} contentFit="cover" />
               ) : (
                 <View style={[styles.placeImage, {
                   backgroundColor: '#333',

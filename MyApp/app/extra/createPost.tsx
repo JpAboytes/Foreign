@@ -1,6 +1,7 @@
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, Alert, Image, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, Alert, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { createPostRecord, uploadPostImage } from '../../services/postService';
@@ -147,7 +148,7 @@ export default function createPost() {
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
           <View style={styles.previewContainer}>
             <Text style={styles.text}>Imagen subida</Text>
-            <Image source={{ uri: uploadedImageUrl }} style={styles.imagePreview} />
+            <Image cachePolicy="memory-disk" transition={200} source={{ uri: uploadedImageUrl }} style={styles.imagePreview} />
   
             <Text style={[styles.text, { marginTop: 10 }]}>Escribe un caption:</Text>
             <TextInput

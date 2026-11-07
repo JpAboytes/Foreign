@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FlatList, View, Text, Image, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { FlatList, View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { subscribeToDirectConversations } from '../../services/chatService';
@@ -110,7 +111,7 @@ export default function MessagesScreen() {
             style={[styles.card, item.unreadCount ? styles.unreadCard : null]} 
             onPress={() => goToChat(item)}
           >
-            <Image 
+            <Image cachePolicy="memory-disk" transition={200} 
               source={renderAvatar(item.photoURL)} 
               style={styles.avatar} 
             />

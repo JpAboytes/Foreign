@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../../context/UserContext';
@@ -121,7 +122,7 @@ export default function QuestionDetailScreen() {
             style={styles.userInfo}
             onPress={() => router.push(`/extra/friendProfile?uid=${question.user?.id}`)}
           >
-            <Image 
+            <Image cachePolicy="memory-disk" transition={200} 
               source={renderAvatar(question.user?.photo)} 
               style={styles.avatar} 
             />
@@ -176,7 +177,7 @@ export default function QuestionDetailScreen() {
                 }}
                 style={{ flexDirection: 'row', alignItems: 'center' }}
               >
-                <Image source={renderAvatar(item.user?.photo)} style={styles.avatar} />
+                <Image cachePolicy="memory-disk" transition={200} source={renderAvatar(item.user?.photo)} style={styles.avatar} />
                 <View>
                   <Text style={styles.userName}>{item.user?.name}</Text>
                   <Text style={styles.timestamp}>{formatTimeAgo(item.timestamp)}</Text>

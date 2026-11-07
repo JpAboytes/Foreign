@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { MapLocation } from '../../services/locationService';
 
@@ -74,10 +75,10 @@ export default function LocationCallout({ location }: LocationCalloutProps) {
       )}
       
       {location.imageUrl && (
-        <Image 
+        <Image cachePolicy="memory-disk" transition={200} 
           source={{ uri: location.imageUrl }} 
           style={styles.image} 
-          resizeMode="cover"
+          contentFit="cover"
         />
       )}
     </View>

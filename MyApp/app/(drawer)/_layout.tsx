@@ -1,6 +1,7 @@
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Drawer } from 'expo-router/drawer';
-import { View, Text, Pressable, StyleSheet, TouchableOpacity, Switch, Image } from "react-native";
+import { View, Text, Pressable, StyleSheet, TouchableOpacity, Switch } from "react-native";
+import { Image } from "expo-image";
 import { useRouter, useNavigation } from "expo-router";
 import { DrawerActions } from "expo-router/react-navigation";
 import * as Haptics from 'expo-haptics';
@@ -102,7 +103,7 @@ function CustomDrawerContent({ isAdmin }: { isAdmin: boolean }) {
     <View style={styles.drawerContainer}>
       <View style={styles.titleContainer}>
         <View style={styles.headerContainer}>
-        <Image 
+        <Image cachePolicy="memory-disk" transition={200} 
   source={require('../../assets/images/logo.png.jpeg')} 
   style={styles.logoImage}
 />
