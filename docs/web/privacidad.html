@@ -1,0 +1,108 @@
+<!doctype html>
+<!--
+  BORRADOR: este texto es una propuesta técnica y NO ha sido revisado por el dueño ni por un abogado.
+  Debe revisarse y aprobarse (legal, jurisdicción, plazos, responsable, datos de contacto) antes de publicarse.
+  Describe lo que el código hace al 2026-11-08 (app.config.js, supabase/migrations, services/). Si cambian los datos
+  recolectados o los proveedores, actualiza esta página, el formulario Data Safety de Google Play y las etiquetas
+  de privacidad de Apple.
+-->
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Política de Privacidad de Foreign</title>
+  <meta name="robots" content="index,follow">
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.6; max-width: 720px; margin: 0 auto; padding: 24px 16px; color: #1c1c1e; }
+    h1 { font-size: 1.6rem; }
+    h2 { font-size: 1.2rem; margin-top: 2rem; }
+    .nota { background: #fff7e0; border-left: 4px solid #e0a800; padding: 8px 12px; font-size: .9rem; }
+    a { color: #0a58ca; }
+    table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+    th, td { border: 1px solid #d0d0d5; padding: 6px 8px; text-align: left; vertical-align: top; }
+  </style>
+</head>
+<body>
+  <h1>Política de Privacidad de Foreign</h1>
+  <p class="nota">Borrador pendiente de revisión por el dueño del proyecto y asesoría legal. No es la versión definitiva.</p>
+  <p>Esta política explica qué datos personales trata <strong>Foreign</strong> (app para estudiantes foráneos), para qué los usamos, con quién los compartimos y cómo puedes ejercer tus derechos. Al crear una cuenta aceptas también los <a href="terminos.html">Términos y Condiciones</a>.</p>
+
+  <h2>1. Responsable</h2>
+  <p>El responsable del tratamiento de tus datos es el equipo de Foreign (nombre o razón social y domicilio: por confirmar). Contacto de privacidad: <a href="mailto:privacidad@foreign.mx">privacidad@foreign.mx</a>.</p>
+
+  <h2>2. Datos que recolectamos</h2>
+  <table>
+    <thead><tr><th>Dato</th><th>Cuándo y cómo</th></tr></thead>
+    <tbody>
+      <tr><td>Correo electrónico y contraseña</td><td>Al registrarte con correo. La contraseña la gestiona el servicio de autenticación y no la vemos en texto claro.</td></tr>
+      <tr><td>Datos de Google o Apple</td><td>Si entras con Google o con Apple recibimos un identificador de cuenta, tu correo (que puede ser un correo privado de retransmisión de Apple) y tu nombre y foto si el proveedor los envía. Apple solo envía el nombre la primera vez.</td></tr>
+      <tr><td>Datos de perfil</td><td>Nombre, universidad, lugar de origen, intereses y foto de perfil, los que tú captures. También, si te registras como mentor, tu biografía, temas y disponibilidad.</td></tr>
+      <tr><td>Aceptación de términos</td><td>Fecha y versión de los Términos que aceptaste.</td></tr>
+      <tr><td>Contenido que publicas</td><td>Publicaciones (texto e imagen), comentarios, me gusta, preguntas y respuestas del foro, calificaciones y lugares que agregas al mapa (título, descripción, tipo, coordenadas e imágenes), y ofertas de raites (origen, destino, hora y notas).</td></tr>
+      <tr><td>Mensajes de chat</td><td>Texto de tus conversaciones con mentores y contactos, y su estado de lectura.</td></tr>
+      <tr><td>Relaciones y notificaciones</td><td>Solicitudes de amistad, lista de usuarios que bloqueas, y notificaciones dentro de la app generadas por la actividad (por ejemplo, un comentario o un mensaje).</td></tr>
+      <tr><td>Solicitudes de raite</td><td>Si pides un raite, se guardan coordenadas de recogida (opcionales) y de destino, la lista de personas a las que se envía y el estado de la solicitud.</td></tr>
+      <tr><td>Reportes</td><td>Los reportes que envías (qué contenido o usuario y el motivo) para que el equipo de moderación los revise.</td></tr>
+      <tr><td>Token de notificaciones push</td><td>Si aceptas recibir notificaciones, guardamos el token del dispositivo, la plataforma (iOS o Android) y la fecha de actualización.</td></tr>
+      <tr><td>Ubicación</td><td>Ver la sección 5.</td></tr>
+      <tr><td>Fotos y cámara</td><td>Ver la sección 5.</td></tr>
+    </tbody>
+  </table>
+  <p>No pedimos datos de pago, no usamos la ubicación en segundo plano y, según nuestra revisión del código a la fecha, la app no integra herramientas de analítica ni de publicidad. Esto debe reconfirmarse antes de publicar.</p>
+
+  <h2>3. Para qué usamos tus datos</h2>
+  <ul>
+    <li>Crear y mantener tu cuenta y permitirte iniciar sesión.</li>
+    <li>Mostrar tu perfil y tu contenido a otras personas usuarias, y conectarte con mentores, amistades y personas que ofrecen raites.</li>
+    <li>Enviar mensajes de chat y notificaciones (dentro de la app y push).</li>
+    <li>Mostrar en el mapa lugares y recomendaciones cercanas.</li>
+    <li>Moderar contenido, atender reportes y bloqueos, y prevenir abuso y fraude.</li>
+    <li>Cumplir obligaciones legales y atender tus solicitudes de derechos.</li>
+  </ul>
+  <p>Tu perfil y el contenido que publicas pueden ser visibles para otras personas usuarias de la app, y las imágenes se guardan en almacenamiento con enlace público; no publiques nada que no quieras compartir.</p>
+
+  <h2>4. Proveedores que tratan datos por nuestra cuenta</h2>
+  <ul>
+    <li><strong>Supabase</strong> (base de datos, autenticación, almacenamiento de archivos y funciones del servidor). Aloja los datos de la sección 2; el proyecto está en la región us-east-1 (Estados Unidos).</li>
+    <li><strong>Expo (EAS) y los servicios de notificaciones push de Apple y Google</strong>: reciben el token del dispositivo y el título y texto de la notificación para entregarla. Expo también puede entregar actualizaciones de la app.</li>
+    <li><strong>Google</strong> (inicio de sesión con Google): recibe los datos necesarios para autenticarte conforme a sus propias políticas.</li>
+    <li><strong>Apple</strong> (Sign in with Apple): igual que lo anterior.</li>
+    <li><strong>Google Places</strong> (búsqueda de lugares en el mapa): al buscar lugares, la app envía a Google tu ubicación aproximada de ese momento (coordenadas), el texto de búsqueda y un radio, junto con la clave de la app.</li>
+    <li><strong>Servicios de mapas y geocodificación del sistema operativo</strong> (Apple o Google): se usan para convertir direcciones y coordenadas.</li>
+  </ul>
+  <p>No vendemos tus datos personales. Algunos proveedores están fuera de México, por lo que tus datos pueden transferirse a otros países (por ejemplo, Estados Unidos).</p>
+
+  <h2>5. Permisos del dispositivo</h2>
+  <ul>
+    <li><strong>Ubicación (solo mientras usas la app):</strong> para mostrarte lugares y recomendaciones cerca de ti en el mapa, y para ubicar solicitudes de raite. La app no guarda un historial de tu ubicación. La ubicación se almacena solo si tú la incluyes en algo que publicas (por ejemplo, un lugar en el mapa o una solicitud de raite) y se envía a Google Places al buscar lugares cercanos. Puedes negar el permiso y seguir usando el resto de la app.</li>
+    <li><strong>Cámara:</strong> para tomar fotos de tu perfil y tus publicaciones.</li>
+    <li><strong>Fotos (biblioteca):</strong> para elegir imágenes de tu perfil y tus publicaciones. Solo accedemos a las imágenes que eliges.</li>
+    <li><strong>Notificaciones:</strong> para avisarte de actividad y mensajes. Puedes desactivarlas en los ajustes del sistema.</li>
+  </ul>
+  <p>Puedes retirar cualquier permiso en los ajustes de tu dispositivo.</p>
+
+  <h2>6. Conservación</h2>
+  <p>Conservamos tus datos mientras tu cuenta esté activa. Al eliminar tu cuenta se borran tu perfil, contenido, mensajes, amistades, notificaciones, solicitudes de raite, tokens push y los archivos que subiste (ver sección 8). Podemos conservar de forma limitada lo que la ley exija o sea necesario para prevenir abuso y fraude, y las copias de seguridad del proveedor pueden retener datos por un periodo limitado (plazos por confirmar). Los registros de reportes de moderación no cuentan hoy con un plazo de conservación propio (por definir).</p>
+
+  <h2>7. Tus derechos ARCO</h2>
+  <p>Conforme a la legislación mexicana de protección de datos personales, tienes derecho a <strong>Acceder</strong> a tus datos, <strong>Rectificarlos</strong> si son inexactos, <strong>Cancelarlos</strong> y <strong>Oponerte</strong> a su tratamiento, y a revocar tu consentimiento. Puedes editar tu perfil directamente en la app. Para cualquier otra solicitud escribe a <a href="mailto:privacidad@foreign.mx">privacidad@foreign.mx</a> desde el correo con el que te registraste, indicando el derecho que ejerces y qué datos involucra. Responderemos en un máximo de 20 días hábiles (plazo por confirmar con asesoría legal). Si consideras que tus derechos no fueron atendidos, puedes acudir a la autoridad de protección de datos competente en México.</p>
+
+  <h2>8. Eliminar tu cuenta</h2>
+  <p>Puedes eliminar tu cuenta y tus datos en cualquier momento desde la app o por correo. Consulta los pasos y qué se elimina en <a href="borrar-cuenta.html">Eliminar tu cuenta de Foreign</a>.</p>
+
+  <h2>9. Menores de edad</h2>
+  <p>Foreign está dirigida a estudiantes de nivel superior y no está dirigida a menores de 13 años; no recolectamos a sabiendas datos de menores de esa edad. La edad mínima para usar la app (y si se requiere consentimiento de madre, padre o tutor para menores de 18) está por confirmar con asesoría legal. Si crees que un menor nos dio datos sin autorización, escríbenos y los eliminaremos.</p>
+
+  <h2>10. Seguridad</h2>
+  <p>Los datos viajan cifrados (HTTPS) y el acceso a la base de datos está restringido con reglas de seguridad por usuario. Ningún sistema es totalmente seguro, por lo que no podemos garantizar una seguridad absoluta.</p>
+
+  <h2>11. Cambios a esta política</h2>
+  <p>Podemos actualizar esta política. Publicaremos la versión vigente en esta página con su fecha y, si el cambio es sustancial, te lo avisaremos en la app.</p>
+
+  <h2>12. Contacto</h2>
+  <p>Dudas, solicitudes de derechos o reportes de privacidad: <a href="mailto:privacidad@foreign.mx">privacidad@foreign.mx</a>.</p>
+  <p class="nota">Por confirmar: la dirección <code>privacidad@foreign.mx</code> es un marcador de posición y debe validarse (buzón activo) antes de publicar esta página.</p>
+
+  <p><small>Última actualización: 8 de noviembre de 2026 (borrador).</small></p>
+</body>
+</html>
