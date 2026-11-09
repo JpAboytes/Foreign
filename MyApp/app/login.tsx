@@ -128,6 +128,7 @@ export default function LoginScreen() {
               <>
               <View style={styles.tabContainer}>
                 <TouchableOpacity 
+                  testID="auth-tab-login"
                   style={[styles.tab, activeTab === 'login' && styles.activeTab]}
                   onPress={() => setActiveTab('login')}
                 >
@@ -136,6 +137,7 @@ export default function LoginScreen() {
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
+                  testID="auth-tab-signup"
                   style={[styles.tab, activeTab === 'signup' && styles.activeTab]}
                   onPress={() => setActiveTab('signup')}
                 >

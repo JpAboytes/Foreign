@@ -108,6 +108,7 @@ export default function MessagesScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity 
+            testID={`messages-item-${item.id}`}
             style={[styles.card, item.unreadCount ? styles.unreadCard : null]} 
             onPress={() => goToChat(item)}
           >

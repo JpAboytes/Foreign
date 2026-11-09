@@ -1,0 +1,20 @@
+appId: mx.foreign.app
+name: Inicio de sesión con correo
+tags:
+  - auth
+  - critico
+---
+# Requiere MAESTRO_E2E_EMAIL y MAESTRO_E2E_PASSWORD (usuario de prueba ya existente).
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "auth-tab-login"
+    timeout: 20000
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      EMAIL: ${MAESTRO_E2E_EMAIL}
+      PASSWORD: ${MAESTRO_E2E_PASSWORD}
+- assertVisible:
+    id: "tab-feed"

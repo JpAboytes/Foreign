@@ -105,6 +105,7 @@ export default function SignupForm({
       <View style={styles.inputContainer}>
         <Ionicons name="person-outline" size={20} color="#888" style={styles.inputIcon} />
         <TextInput
+          testID="signup-name"
           style={styles.input}
           placeholder="Nombre completo"
           placeholderTextColor="#888"
@@ -116,6 +117,7 @@ export default function SignupForm({
       <View style={styles.inputContainer}>
         <Ionicons name="location-outline" size={20} color="#888" style={styles.inputIcon} />
         <TextInput
+          testID="signup-origin"
           style={styles.input}
           placeholder="Lugar de origen"
           placeholderTextColor="#888"
@@ -127,6 +129,7 @@ export default function SignupForm({
       <View style={styles.inputContainer}>
         <Ionicons name="school-outline" size={20} color="#888" style={styles.inputIcon} />
         <Picker
+          testID="signup-university"
           selectedValue={university}
           onValueChange={(itemValue) => setUniversity(itemValue)}
           style={styles.picker}
@@ -150,6 +153,7 @@ export default function SignupForm({
         {interests.map(interest => (
           <TouchableOpacity 
             key={interest}
+            testID={`signup-interest-${interest}`}
             style={[
               styles.interestChip,
               selectedInterests.includes(interest) && styles.interestChipSelected
@@ -171,6 +175,7 @@ export default function SignupForm({
       <View style={styles.inputContainer}>
         <Ionicons name="mail-outline" size={20} color="#888" style={styles.inputIcon} />
         <TextInput
+          testID="signup-email"
           style={styles.input}
           placeholder="Correo electrónico"
           placeholderTextColor="#888"
@@ -184,6 +189,7 @@ export default function SignupForm({
       <View style={styles.inputContainer}>
         <Ionicons name="lock-closed-outline" size={20} color="#888" style={styles.inputIcon} />
         <TextInput
+          testID="signup-password"
           style={styles.input}
           placeholder="Contraseña"
           placeholderTextColor="#888"
@@ -196,6 +202,7 @@ export default function SignupForm({
       <View style={styles.inputContainer}>
         <Ionicons name="checkmark-circle-outline" size={20} color="#888" style={styles.inputIcon} />
         <TextInput
+          testID="signup-confirm-password"
           style={styles.input}
           placeholder="Confirmar contraseña"
           placeholderTextColor="#888"
@@ -207,6 +214,7 @@ export default function SignupForm({
 
       <View style={styles.termsRow}>
         <TouchableOpacity
+          testID="signup-terms-checkbox"
           accessibilityRole="checkbox"
           accessibilityState={{ checked: acceptedTerms }}
           accessibilityLabel="Acepto los Términos y Condiciones"
@@ -236,7 +244,7 @@ export default function SignupForm({
         <ActivityIndicator size="large" color="#bb86fc" style={styles.loader} />
       ) : (
         <>
-          <TouchableOpacity style={styles.primaryButton} onPress={handleSignup}>
+          <TouchableOpacity testID="signup-submit" style={styles.primaryButton} onPress={handleSignup}>
             <Text style={styles.buttonText}>Crear Cuenta</Text>
           </TouchableOpacity>
           

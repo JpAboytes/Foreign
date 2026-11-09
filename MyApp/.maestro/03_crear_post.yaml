@@ -1,0 +1,60 @@
+appId: mx.foreign.app
+name: Crear publicación
+tags:
+  - feed
+  - critico
+---
+# Requiere el usuario de prueba y al menos una foto en la galería del dispositivo/emulador.
+# Los textos del selector de fotos del sistema varían por SO; ajusta el paso marcado si cambia.
+- launchApp
+- runFlow:
+    when:
+      visible:
+        id: "auth-tab-login"
+    file: subflows/login.yaml
+    env:
+      EMAIL: ${MAESTRO_E2E_EMAIL}
+      PASSWORD: ${MAESTRO_E2E_PASSWORD}
+- tapOn:
+    id: "tab-feed"
+- tapOn:
+    id: "feed-create-post"
+# Permiso de cámara (solo la primera vez)
+- runFlow:
+    when:
+      visible:
+        id: "create-post-grant-permission"
+    commands:
+      - tapOn:
+          id: "create-post-grant-permission"
+      - tapOn:
+          text: "(Mientras|Al) usar la app|Solo esta vez|Allow|While using the app"
+          optional: true
+- tapOn:
+    id: "create-post-gallery"
+# Selector de fotos del sistema: elige la primera imagen disponible.
+- tapOn:
+    text: "Foto.*|Photo.*"
+    index: 0
+    optional: true
+- tapOn:
+    text: "Listo|Elegir|Seleccionar|Done|Choose"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "create-post-caption"
+    timeout: 30000
+- tapOn:
+    id: "create-post-caption"
+- inputText: "Publicación de prueba E2E"
+- hideKeyboard
+- tapOn:
+    id: "create-post-submit"
+# La app muestra una alerta nativa de confirmación y regresa al feed.
+- tapOn:
+    text: "OK"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "tab-feed"
+    timeout: 20000

@@ -145,13 +145,14 @@ export default function ChatScreen() {
           ]}
         >
           <TextInput
+            testID="chat-input"
             style={styles.input}
             value={input}
             onChangeText={setInput}
             placeholder="Escribe un mensaje..."
             placeholderTextColor="#888"
           />
-          <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
+          <TouchableOpacity testID="chat-send" style={styles.sendBtn} onPress={handleSend}>
             <Text style={styles.sendText}>Enviar</Text>
           </TouchableOpacity>
         </View>

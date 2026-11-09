@@ -1,0 +1,18 @@
+# Inicia sesión con el parámetro EMAIL/PASSWORD que reciba (env del flujo que lo llama).
+appId: mx.foreign.app
+---
+- tapOn:
+    id: "auth-tab-login"
+- tapOn:
+    id: "login-email"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "tab-feed"
+    timeout: 20000

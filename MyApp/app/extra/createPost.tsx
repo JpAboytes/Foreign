@@ -107,7 +107,7 @@ export default function createPost() {
     return (
       <View style={styles.container}>
         <Text style={styles.message}>Necesitamos tu permiso para usar la cámara</Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+        <TouchableOpacity testID="create-post-grant-permission" style={styles.permissionButton} onPress={requestPermission}>
           <Text style={styles.text}>Conceder permiso</Text>
         </TouchableOpacity>
       </View>
@@ -139,7 +139,7 @@ export default function createPost() {
               <View style={styles.innerCircle} />
             </TouchableOpacity>
   
-            <TouchableOpacity onPress={pickImageFromLibrary} style={styles.galleryButton}>
+            <TouchableOpacity testID="create-post-gallery" onPress={pickImageFromLibrary} style={styles.galleryButton}>
               <Text style={styles.text}>📁</Text>
             </TouchableOpacity>
           </View>
@@ -152,6 +152,7 @@ export default function createPost() {
   
             <Text style={[styles.text, { marginTop: 10 }]}>Escribe un caption:</Text>
             <TextInput
+              testID="create-post-caption"
               style={styles.input}
               placeholder="¿Qué estás pensando?"
               placeholderTextColor="#888"
@@ -162,6 +163,7 @@ export default function createPost() {
     
   
             <TouchableOpacity
+              testID="create-post-submit"
               onPress={() => savePost(caption, uploadedImageUrl)}
               style={[styles.galleryButton, { marginTop: 20 }]}
             >

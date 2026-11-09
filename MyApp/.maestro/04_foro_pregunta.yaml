@@ -1,0 +1,25 @@
+appId: mx.foreign.app
+name: Foro, crear pregunta
+tags:
+  - foro
+  - critico
+---
+- launchApp
+- runFlow:
+    when:
+      visible:
+        id: "auth-tab-login"
+    file: subflows/login.yaml
+    env:
+      EMAIL: ${MAESTRO_E2E_EMAIL}
+      PASSWORD: ${MAESTRO_E2E_PASSWORD}
+- tapOn:
+    id: "tab-forum"
+- tapOn:
+    id: "forum-question-input"
+- inputText: "¿Dónde conviene rentar cerca del campus? E2E"
+- tapOn:
+    id: "forum-question-send"
+- extendedWaitUntil:
+    visible: "¿Dónde conviene rentar cerca del campus? E2E"
+    timeout: 15000

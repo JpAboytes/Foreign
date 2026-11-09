@@ -155,7 +155,7 @@ export default function FeedScreen() {
   
         {/* FAB para crear post */}
         {!isKeyboardVisible && (
-          <TouchableOpacity style={styles.fab} onPress={goToCreatePost}>
+          <TouchableOpacity testID="feed-create-post" style={styles.fab} onPress={goToCreatePost}>
             <Text style={styles.fabText}>＋</Text>
           </TouchableOpacity>
         )}

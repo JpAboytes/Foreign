@@ -29,7 +29,7 @@ export default function TermsGate({ isLoading, onAccept, onDecline }: TermsGateP
         <ActivityIndicator size="large" color="#bb86fc" style={styles.loader} />
       ) : (
         <>
-          <TouchableOpacity style={styles.primaryButton} onPress={onAccept}>
+          <TouchableOpacity testID="terms-accept" style={styles.primaryButton} onPress={onAccept}>
             <Text style={styles.buttonText}>Acepto los Términos y Condiciones</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.secondaryButton} onPress={onDecline}>
