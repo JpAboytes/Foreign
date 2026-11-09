@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  FlatList, StyleSheet, Platform,
+  FlatList, StyleSheet, Platform, Alert,
   KeyboardAvoidingView, useWindowDimensions
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -17,6 +17,9 @@ import {
   markMessagesAsRead,
   RealtimeChatMessage,
 } from '../../services/chatService';
+import { excludeBlocked } from '../../services/moderationService';
+import { useModeration } from '../../hooks/useModeration';
+import { useBlockedIds } from '../../hooks/useBlockedIds';
 import MaxWidthContainer from '../../components/MaxWidthContainer';
 
 const defaultUserImage = require('../../assets/images/img7.jpg');
@@ -31,6 +34,8 @@ export default function ChatScreen() {
   const [photoUri, setPhotoUri] = useState<string>();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<RealtimeChatMessage[]>([]);
+  const { blockedIds, addBlocked } = useBlockedIds(currentUser?.id);
+  const { openReportMenu, confirmBlock } = useModeration(currentUser?.id);
 
   // 1) Buscar la sesión con el amigo (se crea al enviar el primer mensaje)
   useEffect(() => {
@@ -77,8 +82,21 @@ export default function ChatScreen() {
 
   const renderItem = ({ item }: { item: RealtimeChatMessage }) => {
     const isUser = item.from === currentUser?.id;
+    // Mantener presionado un mensaje ajeno: reportar o bloquear al autor (nunca en mensajes propios)
+    const onLongPress = isUser
+      ? undefined
+      : () =>
+          Alert.alert('Mensaje', '¿Qué quieres hacer?', [
+            { text: 'Reportar mensaje', onPress: () => openReportMenu('message', item.id, 'Reportar mensaje') },
+            { text: 'Bloquear usuario', style: 'destructive', onPress: () => confirmBlock(item.from, friendName, addBlocked) },
+            { text: 'Cancelar', style: 'cancel' },
+          ]);
     return (
-      <View
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onLongPress={onLongPress}
+        disabled={isUser}
+        accessibilityHint={isUser ? undefined : 'Mantén presionado para reportar o bloquear'}
         style={[
           styles.bubble,
           {
@@ -92,19 +110,19 @@ export default function ChatScreen() {
         <Text style={[styles.text, { color: '#fff' }]}>
           {item.text}
         </Text>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   // Mensajes únicos (el servicio ya los entrega en orden cronológico)
   const uniqueMessages = useMemo(() => {
     const seen = new Set<string>();
-    return messages.filter(m => {
+    return excludeBlocked(messages, blockedIds, (m) => m.from).filter(m => {
       if (seen.has(m.id)) return false;
       seen.add(m.id);
       return true;
     });
-  }, [messages]);
+  }, [messages, blockedIds]);
 
   // Marcar como leídos los mensajes del amigo cuando llegan
   const lastIncomingId = uniqueMessages.filter(m => m.from !== currentUser?.id).at(-1)?.id;

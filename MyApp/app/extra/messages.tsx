@@ -4,6 +4,8 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { subscribeToDirectConversations } from '../../services/chatService';
+import { excludeBlocked } from '../../services/moderationService';
+import { useBlockedIds } from '../../hooks/useBlockedIds';
 import { Ionicons } from '@expo/vector-icons';
 
 // Interfaces
@@ -25,6 +27,7 @@ export default function MessagesScreen() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [{ user: currentUser, isLoading: authLoading }] = useAuth();
+  const { blockedIds } = useBlockedIds(currentUser?.id);
 
   // Conversaciones con amigos en tiempo real (el servicio cierra el canal en el cleanup)
   useEffect(() => {
@@ -46,17 +49,19 @@ export default function MessagesScreen() {
 
   // Filtrar amigos cuando cambia la búsqueda
   useEffect(() => {
+    // Las conversaciones con usuarios bloqueados no se muestran
+    const visible = excludeBlocked(friends, blockedIds, (f) => f.id);
     if (searchQuery) {
       const lowercasedQuery = searchQuery.toLowerCase();
-      const filtered = friends.filter(friend =>
+      const filtered = visible.filter(friend =>
         friend.name.toLowerCase().includes(lowercasedQuery) ||
         friend.lastMessage?.toLowerCase().includes(lowercasedQuery)
       );
       setFilteredFriends(filtered);
     } else {
-      setFilteredFriends(friends);
+      setFilteredFriends(visible);
     }
-  }, [searchQuery, friends]);
+  }, [searchQuery, friends, blockedIds]);
 
   const goToChat = (friend: FriendInfo) => {
     router.push({

@@ -10,12 +10,15 @@ import { useRouter } from 'expo-router';
 import { useChats } from '../../hooks/useChats';
 import { useAuth } from '../../hooks/useAuth';
 import ChatSessionCard from '../../components/mentor/ChatSessionCard';
+import { excludeBlocked } from '../../services/moderationService';
+import { useBlockedIds } from '../../hooks/useBlockedIds';
 import { ChatSession } from '../../services/mentorService';
 
 export default function ReceivedChatsScreen() {
   const router = useRouter();
   const [{ user }] = useAuth();
   const userId = user?.id ?? '';
+  const { blockedIds } = useBlockedIds(userId);
   
   const { 
     chatSessions, 
@@ -43,7 +46,7 @@ export default function ReceivedChatsScreen() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={chatSessions}
+        data={excludeBlocked(chatSessions, blockedIds, (s) => s.studentId)}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ChatSessionCard
