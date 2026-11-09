@@ -14,7 +14,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { Picker } from '@react-native-picker/picker';
 import ImagePicker from './ImagePicker';
 import { UserProfile } from '../../services/userService';
-import { TERMS_URL } from '../../services/auth';
+import { TERMS_URL, PRIVACY_URL } from '../../services/auth';
 
 interface SignupFormProps {
   onSignup: (email: string, password: string, profileData: Partial<UserProfile>, acceptedTerms: boolean) => Promise<void>;
@@ -223,6 +223,10 @@ export default function SignupForm({
           Acepto los{' '}
           <Text style={styles.termsLink} onPress={() => Linking.openURL(TERMS_URL)}>
             Términos y Condiciones
+          </Text>
+          {' '}y la{' '}
+          <Text style={styles.termsLink} onPress={() => Linking.openURL(PRIVACY_URL)}>
+            Política de Privacidad
           </Text>
           , incluida la política de cero tolerancia a contenido abusivo.
         </Text>

@@ -26,6 +26,10 @@ export const TERMS_VERSION = '2026-11-01';
 export const TERMS_URL =
   process.env.EXPO_PUBLIC_TERMS_URL || 'https://foreign.mx/terminos';
 
+// URL pública de la política de privacidad; se define en .env / variables de EAS.
+export const PRIVACY_URL =
+  process.env.EXPO_PUBLIC_PRIVACY_URL || 'https://foreign.mx/privacidad';
+
 export interface SignupResult {
   user: AuthUser | null;
   // true cuando el proyecto exige confirmar el correo: no hay sesión hasta confirmarlo.

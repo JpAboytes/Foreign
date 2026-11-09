@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Linking } from 'react-native';
-import { TERMS_URL } from '../../services/auth';
+import { TERMS_URL, PRIVACY_URL } from '../../services/auth';
 
 interface TermsGateProps {
   isLoading: boolean;
@@ -21,6 +21,9 @@ export default function TermsGate({ isLoading, onAccept, onDecline }: TermsGateP
       </Text>
       <Text style={styles.link} onPress={() => Linking.openURL(TERMS_URL)}>
         Leer los Términos y Condiciones
+      </Text>
+      <Text style={styles.link} onPress={() => Linking.openURL(PRIVACY_URL)}>
+        Leer la Política de Privacidad
       </Text>
       {isLoading ? (
         <ActivityIndicator size="large" color="#bb86fc" style={styles.loader} />
