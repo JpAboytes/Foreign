@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getCurrentUser } from '../services/auth';
 import { getUserProfile } from '../services/userService';
 import { getFriendIds } from '../services/profileService';
 import { getAllLocations } from '../services/mapService';
+import { filterVisibleLocations } from '../utils/mapPins';
 
 export type MapFriend = { id: string; name: string };
 
@@ -13,6 +14,8 @@ export function useMapData() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [friendIds, setFriendIds] = useState<string[]>([]);
   const [friends, setFriends] = useState<MapFriend[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   //auth y amigos
   useEffect(() => {
@@ -24,25 +27,28 @@ export function useMapData() {
         setCurrentUserId(user.id);
         const ids = await getFriendIds(user.id);
         if (!cancelled) setFriendIds(ids);
-      } catch (error) {
-        console.error('❌ Error cargando usuario y amigos:', error);
+      } catch (err) {
+        console.error('❌ Error cargando usuario y amigos:', err);
+        if (!cancelled) {
+          setError('No se pudo cargar tu información. Revisa tu conexión e inténtalo de nuevo.');
+          setIsLoading(false);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   //fetch locations
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const loadedLocations = (await getAllLocations()).filter(
-          (loc) => loc.createdBy === currentUserId || friendIds.includes(loc.createdBy)
-        );
+        const loadedLocations = filterVisibleLocations(await getAllLocations(), currentUserId, friendIds);
         setLocations(loadedLocations);
-      } catch (error) {
-        console.error('❌ Error cargando lugares:', error);
+      } catch (err) {
+        console.error('❌ Error cargando lugares:', err);
+        setError('No se pudieron cargar los lugares. Revisa tu conexión e inténtalo de nuevo.');
       } finally {
         setIsLoading(false);
       }
@@ -51,7 +57,7 @@ export function useMapData() {
     if (currentUserId) {
       fetchLocations();
     }
-  }, [currentUserId, friendIds]);
+  }, [currentUserId, friendIds, reloadKey]);
 
   // filtrar info de amigos
   useEffect(() => {
@@ -90,5 +96,11 @@ export function useMapData() {
     }
   };
 
-  return { locations, isLoading, currentUserId, friendIds, friends, setFriends, fetchLocationsAgain };
+  const reload = useCallback(() => {
+    setError(null);
+    setIsLoading(true);
+    setReloadKey((k) => k + 1);
+  }, []);
+
+  return { locations, isLoading, error, reload, currentUserId, friendIds, friends, setFriends, fetchLocationsAgain };
 }

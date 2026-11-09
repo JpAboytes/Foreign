@@ -19,6 +19,7 @@ import { useRaiteFlow } from '../../../hooks/useRaiteFlow';
 import { getPinColor, filterLocationsByTypes } from '../../../utils/mapPins';
 import { mapStyle, LATITUDE_DELTA, LONGITUDE_DELTA } from '../../../components/map/mapStyle';
 import { styles } from '../../../components/map/mapScreenStyles';
+import ErrorState from '../../../components/common/ErrorState';
 import MapWebFallback from '../../../components/map/MapWebFallback';
 import PlaceMarker from '../../../components/map/PlaceMarker';
 import RaiteRouteOverlay from '../../../components/map/RaiteRouteOverlay';
@@ -31,7 +32,7 @@ import RaiteAlertModal from '../../../components/map/RaiteAlertModal';
 export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
 
-  const { locations, isLoading, currentUserId, friendIds, friends, setFriends, fetchLocationsAgain } = useMapData();
+  const { locations, isLoading, error, reload, currentUserId, friendIds, friends, setFriends, fetchLocationsAgain } = useMapData();
   const { confirmedTypes } = useMapFilters();
   const userLocation = useUserLocation();
   const place = usePlaceDetail();
@@ -43,6 +44,14 @@ export default function MapScreen() {
   // Early return for web platform
   if (Platform.OS === 'web') {
     return <MapWebFallback />;
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ErrorState message={error} onRetry={reload} />
+      </SafeAreaView>
+    );
   }
 
   // Si no se ha obtenido la ubicación, mostramos un indicador.

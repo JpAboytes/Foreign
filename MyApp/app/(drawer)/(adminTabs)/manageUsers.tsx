@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import ErrorState from '../../../components/common/ErrorState';
 import MaxWidthContainer from '../../../components/MaxWidthContainer';
 import AdminCategorySelector from '../../../components/admin/AdminCategorySelector';
 import AdminListHeader from '../../../components/admin/AdminListHeader';
@@ -30,6 +31,8 @@ export default function ManagementScreen() {
     filteredItems,
     loading,
     refreshing,
+    error,
+    reload,
     searchQuery,
     setSearchQuery,
     sortOrder,
@@ -62,6 +65,8 @@ export default function ManagementScreen() {
             <ActivityIndicator size="large" color="#b388ff" />
             <Text style={styles.loadingText}>Cargando {activeCategory.name.toLowerCase()}...</Text>
           </View>
+        ) : error ? (
+          <ErrorState message={error} onRetry={reload} />
         ) : (
           <FlatList
             data={filteredItems}

@@ -14,3 +14,12 @@ export function filterLocationsByTypes<T extends { type: string[] }>(locations: 
     return place.type.some((t) => confirmedTypes.includes(t));
   });
 }
+
+/** Lugares visibles: los del usuario actual y los de sus amigos. */
+export function filterVisibleLocations<T extends { createdBy: string }>(
+  locations: T[],
+  currentUserId: string | null,
+  friendIds: string[]
+): T[] {
+  return locations.filter((loc) => loc.createdBy === currentUserId || friendIds.includes(loc.createdBy));
+}

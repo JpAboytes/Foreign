@@ -1,4 +1,4 @@
-import { getPinColor, filterLocationsByTypes } from '../mapPins';
+import { getPinColor, filterLocationsByTypes, filterVisibleLocations } from '../mapPins';
 
 describe('getPinColor', () => {
   it('usa el color propio para el usuario actual', () => {
@@ -20,5 +20,15 @@ describe('filterLocationsByTypes', () => {
   });
   it('filtra por tipo', () => {
     expect(filterLocationsByTypes(places, ['c'])).toEqual([places[1]]);
+  });
+});
+
+describe('filterVisibleLocations', () => {
+  const locs = [{ createdBy: 'me' }, { createdBy: 'f1' }, { createdBy: 'x' }];
+  it('deja solo lugares propios y de amigos', () => {
+    expect(filterVisibleLocations(locs, 'me', ['f1'])).toEqual([{ createdBy: 'me' }, { createdBy: 'f1' }]);
+  });
+  it('sin usuario ni amigos no muestra nada', () => {
+    expect(filterVisibleLocations(locs, null, [])).toEqual([]);
   });
 });
