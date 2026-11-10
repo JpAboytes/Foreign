@@ -15,6 +15,7 @@ export function useManageUsers() {
   const [items, setItems] = useState<AdminItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<AdminItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<AdminSortOrder>('asc');
@@ -32,13 +33,15 @@ export function useManageUsers() {
   const fetchItems = async () => {
     try {
       setLoading(true);
+      setError(null);
       setSearchQuery('');
       const itemsList = await listAdminItems(activeCategory.id);
       setItems(itemsList);
       setFilteredItems(sortAdminItems(itemsList, getSortFieldForCategory(activeCategory.id, sortBy), sortOrder));
     } catch (error) {
       console.error(`Error fetching ${activeCategory.name}:`, error);
-      Alert.alert('Error', `No se pudieron cargar los ${activeCategory.name.toLowerCase()}`);
+      setItems([]);
+      setError(`No se pudieron cargar los ${activeCategory.name.toLowerCase()}. Revisa tu conexión e inténtalo de nuevo.`);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -87,6 +90,8 @@ export function useManageUsers() {
     filteredItems,
     loading,
     refreshing,
+    error,
+    reload: fetchItems,
     searchQuery,
     setSearchQuery,
     sortOrder,
