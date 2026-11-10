@@ -874,6 +874,7 @@ export type Database = {
       }
       delete_my_account: { Args: never; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
+      is_blocked_pair: { Args: { a: string; b: string }; Returns: boolean }
       is_chat_participant: { Args: { p_session_id: string }; Returns: boolean }
     }
     Enums: {

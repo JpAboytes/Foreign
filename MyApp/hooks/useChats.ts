@@ -9,6 +9,7 @@ import {
   ChatSession,
   ChatMessage
 } from '../services/mentorService';
+import { markChatNotificationsRead } from '../services/notificationService';
 
 export function useChats(userId: string, isMentor: boolean) {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
@@ -48,8 +49,9 @@ export function useChats(userId: string, isMentor: boolean) {
     
     setLoading(prev => ({ ...prev, messages: true }));
     
-    // Marcar mensajes como leídos
+    // Marcar mensajes (y sus notificaciones) como leídos
     markMessagesAsRead(activeSession.id, userId);
+    markChatNotificationsRead(userId, activeSession.id).catch(() => {});
     
     const unsubscribe = getChatMessages(activeSession.id, (loadedMessages) => {
       setMessages(loadedMessages);
