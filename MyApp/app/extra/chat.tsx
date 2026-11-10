@@ -18,6 +18,7 @@ import {
   RealtimeChatMessage,
 } from '../../services/chatService';
 import { excludeBlocked } from '../../services/moderationService';
+import { markChatNotificationsRead } from '../../services/notificationService';
 import { useModeration } from '../../hooks/useModeration';
 import { useBlockedIds } from '../../hooks/useBlockedIds';
 import MaxWidthContainer from '../../components/MaxWidthContainer';
@@ -77,6 +78,14 @@ export default function ChatScreen() {
     } catch (error) {
       console.error('Error enviando mensaje:', error);
       setInput(text);
+      // 42501: la RLS rechazó el mensaje (hay un bloqueo entre los dos usuarios).
+      const blocked = (error as { code?: string })?.code === '42501';
+      Alert.alert(
+        'No se pudo enviar',
+        blocked
+          ? 'No puedes enviar mensajes a este usuario.'
+          : 'Revisa tu conexión e inténtalo de nuevo.'
+      );
     }
   };
 
@@ -124,11 +133,12 @@ export default function ChatScreen() {
     });
   }, [messages, blockedIds]);
 
-  // Marcar como leídos los mensajes del amigo cuando llegan
+  // Marcar como leídos los mensajes del amigo (y sus notificaciones) cuando llegan
   const lastIncomingId = uniqueMessages.filter(m => m.from !== currentUser?.id).at(-1)?.id;
   useEffect(() => {
     if (!sessionId || !currentUser || !lastIncomingId) return;
     markMessagesAsRead(sessionId, currentUser.id).catch(() => {});
+    markChatNotificationsRead(currentUser.id, sessionId).catch(() => {});
   }, [sessionId, currentUser?.id, lastIncomingId]);
 
   return (
