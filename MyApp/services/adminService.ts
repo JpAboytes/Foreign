@@ -213,12 +213,12 @@ export const sortAdminItems = <T extends AdminItem>(items: T[], field: string, o
   });
 };
 
-// Eliminar un elemento. Usuarios: función admin_delete_user. Mentores: solo se quita el
+// Eliminar un elemento. Usuarios: Edge Function admin-delete-user (borra también Storage). Mentores: solo se quita el
 // rol de mentor (el usuario sigue existiendo). El resto: delete bajo la política de admin.
 export const deleteAdminItem = async (category: AdminCategory, id: string): Promise<void> => {
   if (category === 'users') {
-    const { error } = await supabase.rpc('admin_delete_user', { p_user_id: id });
-    if (error) throw error;
+    const { error } = await supabase.functions.invoke('admin-delete-user', { body: { user_id: id } });
+    if (error) throw new Error('No se pudo eliminar al usuario. Intenta de nuevo.');
     return;
   }
   if (category === 'mentors') {
