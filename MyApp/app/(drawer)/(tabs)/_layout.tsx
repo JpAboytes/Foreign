@@ -60,7 +60,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#bb86fc',
         tabBarInactiveTintColor: '#888',
         headerLeft: () => (
-          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10 }} onPress={openDrawer} >
+          <TouchableOpacity testID="drawer-open" style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10 }} onPress={openDrawer} >
             <Ionicons name="menu" size={24} color="#fff" />
           </TouchableOpacity>
         ),
@@ -97,6 +97,7 @@ export default function TabLayout() {
         options={{
           headerTitle: ForeignHeader,
           title: 'Feed',
+          tabBarButtonTestID: 'tab-feed',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" color={color as string} size={size} />
           ),
@@ -136,6 +137,7 @@ export default function TabLayout() {
         options={{
           headerTitle: ForeignHeader,
           title: 'Forum',
+          tabBarButtonTestID: 'tab-forum',
           href: isAnonymous ? null : undefined,
           tabBarIcon: isAnonymous
             ? () => null

@@ -1,0 +1,7 @@
+# Abre el menú lateral y entra a un ítem. Requiere ITEM_ID (p. ej. "settings", "messages").
+appId: mx.foreign.app
+---
+- tapOn:
+    id: "drawer-open"
+- tapOn:
+    id: "drawer-item-${ITEM_ID}"

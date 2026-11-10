@@ -69,7 +69,7 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [~] Política de privacidad y términos publicados (borrador `docs/web/privacidad.html` creado y enlazado desde registro y TermsGate con `EXPO_PUBLIC_PRIVACY_URL`; pendiente: revisión legal, confirmar `privacidad@foreign.mx` y publicar las URL públicas) · [x] Privacy Manifest y textos de permisos (es-MX) en `app.config.js`
 - [~] Partir `map.tsx` (hecho: 1578 → 189 líneas, hooks y componentes en `components/map/`) y `manageUsers.tsx` (hecho: 896 → 102 líneas; `hooks/useManageUsers.ts`, `utils/adminFilters.ts` con tests y `components/admin/`); estados de carga, error y vacío (hecho 2026-11-09: `components/common/ErrorState.tsx` con botón «Reintentar» en manageUsers y map; `error`/`reload` en `useManageUsers` y `useMapData`; pendiente validar en dispositivo y estado vacío/error en otras pantallas)
 - [ ] Monitoreo de errores (Sentry) y analítica básica
-- [ ] E2E con Maestro de los flujos críticos: registro, login, post, foro, chat, borrar cuenta
+- [~] E2E con Maestro de los flujos críticos: registro, login, post, foro, chat, borrar cuenta — flujos escritos en `MyApp/.maestro/` (2026-11-09) con `testID` mínimos; NO ejecutados aún (sin emulador). Pendiente: correrlos en un development build, seed de usuario/amigo de prueba y confirmación de correo desactivada en el entorno de pruebas
 
 ### Fase 5 — Lanzamiento (`release-manager`)
 - [~] Perfiles de `eas.json` con entorno y canal por perfil (development/preview/production; variables con `eas env:create --environment <env>`) — hecho 2026-11-04. Pendiente: proyecto Supabase de staging (el plan puede generar gasto; decisión del dueño) y crear las variables en EAS

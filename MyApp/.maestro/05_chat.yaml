@@ -1,0 +1,31 @@
+appId: mx.foreign.app
+name: Chat, enviar mensaje
+tags:
+  - chat
+  - critico
+---
+# Requiere que el usuario de prueba ya tenga al menos un amigo (conversación en "Messages").
+- launchApp
+- runFlow:
+    when:
+      visible:
+        id: "auth-tab-login"
+    file: subflows/login.yaml
+    env:
+      EMAIL: ${MAESTRO_E2E_EMAIL}
+      PASSWORD: ${MAESTRO_E2E_PASSWORD}
+- runFlow:
+    file: subflows/open_drawer_item.yaml
+    env:
+      ITEM_ID: "messages"
+- tapOn:
+    id: "messages-item-.*"
+    index: 0
+- tapOn:
+    id: "chat-input"
+- inputText: "Hola desde Maestro E2E"
+- tapOn:
+    id: "chat-send"
+- extendedWaitUntil:
+    visible: "Hola desde Maestro E2E"
+    timeout: 15000

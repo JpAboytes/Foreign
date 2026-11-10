@@ -1,0 +1,52 @@
+appId: mx.foreign.app
+name: Registro con correo
+tags:
+  - auth
+  - critico
+---
+# Requiere MAESTRO_E2E_SIGNUP_EMAIL y MAESTRO_E2E_SIGNUP_PASSWORD (cuenta nueva, inexistente)
+# y que el entorno de prueba NO exija confirmar el correo.
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "auth-tab-signup"
+    timeout: 20000
+- tapOn:
+    id: "auth-tab-signup"
+- tapOn:
+    id: "signup-name"
+- inputText: "Usuario E2E"
+- tapOn:
+    id: "signup-origin"
+- inputText: "Guadalajara"
+- hideKeyboard
+- tapOn:
+    id: "signup-university"
+- tapOn: "CETYS"
+- scrollUntilVisible:
+    element:
+      id: "signup-email"
+- tapOn:
+    id: "signup-interest-deportes"
+- tapOn:
+    id: "signup-email"
+- inputText: ${MAESTRO_E2E_SIGNUP_EMAIL}
+- tapOn:
+    id: "signup-password"
+- inputText: ${MAESTRO_E2E_SIGNUP_PASSWORD}
+- tapOn:
+    id: "signup-confirm-password"
+- inputText: ${MAESTRO_E2E_SIGNUP_PASSWORD}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "signup-submit"
+- tapOn:
+    id: "signup-terms-checkbox"
+- tapOn:
+    id: "signup-submit"
+- extendedWaitUntil:
+    visible:
+      id: "tab-feed"
+    timeout: 30000

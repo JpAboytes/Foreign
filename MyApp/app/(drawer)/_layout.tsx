@@ -20,6 +20,7 @@ const CustomDrawerButton = () => {
 
   return (
     <TouchableOpacity 
+      testID="drawer-open"
       style={{ padding: 4, marginRight: Platform.OS === "ios" ? 0 : 12, backgroundColor: "#f5f5f5", borderRadius: 50 }}
       onPress={openDrawer}
     >
@@ -116,6 +117,7 @@ function CustomDrawerContent({ isAdmin }: { isAdmin: boolean }) {
             {menuItems.map((item, index) => (
               <View key={index}>
                 <TouchableOpacity 
+                  testID={`drawer-item-${item.path.split('/').pop()}`}
                   style={styles.menuItemContainer}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -136,6 +138,7 @@ function CustomDrawerContent({ isAdmin }: { isAdmin: boolean }) {
             {menuItemsAdmin.map((item, index) => (
               <View key={index}>
                 <TouchableOpacity 
+                  testID={`drawer-item-${item.path.split('/').pop()}`}
                   style={styles.menuItemContainer}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -153,6 +156,7 @@ function CustomDrawerContent({ isAdmin }: { isAdmin: boolean }) {
       </View>
 
       <Pressable
+        testID="drawer-logout"
         onPress={handleLogout}
         style={({ pressed }) => [styles.logoutButton, pressed ? styles.logoutButtonPressed : {}]}
       >

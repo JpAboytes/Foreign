@@ -1,0 +1,47 @@
+appId: mx.foreign.app
+name: Borrar cuenta
+tags:
+  - cuenta
+  - critico
+---
+# Borra la cuenta creada en 01_registro (NO uses el usuario de prueba compartido).
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "auth-tab-login"
+    timeout: 20000
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      EMAIL: ${MAESTRO_E2E_SIGNUP_EMAIL}
+      PASSWORD: ${MAESTRO_E2E_SIGNUP_PASSWORD}
+- runFlow:
+    file: subflows/open_drawer_item.yaml
+    env:
+      ITEM_ID: "settings"
+- tapOn:
+    id: "settings-delete-account"
+- tapOn:
+    id: "settings-delete-password"
+- inputText: ${MAESTRO_E2E_SIGNUP_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "settings-delete-confirm"
+# Tras borrar, la app regresa a la pantalla de acceso.
+- extendedWaitUntil:
+    visible:
+      id: "auth-tab-login"
+    timeout: 30000
+# La cuenta ya no debe poder iniciar sesión.
+- tapOn:
+    id: "login-email"
+- inputText: ${MAESTRO_E2E_SIGNUP_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${MAESTRO_E2E_SIGNUP_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- assertNotVisible:
+    id: "tab-feed"

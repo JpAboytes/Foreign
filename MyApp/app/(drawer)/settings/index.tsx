@@ -170,6 +170,7 @@ export default function SettingsScreen() {
             </TouchableOpacity>
             
             <TouchableOpacity 
+              testID="settings-delete-account"
               style={styles.dangerButton} 
               onPress={confirmDeleteAccount}
             >
@@ -198,6 +199,7 @@ export default function SettingsScreen() {
                   <>
                     <Text style={styles.inputLabel}>Ingresa tu contraseña para confirmar:</Text>
                     <TextInput
+                      testID="settings-delete-password"
                       style={styles.passwordInput}
                       secureTextEntry
                       value={password}
@@ -224,6 +226,7 @@ export default function SettingsScreen() {
                   </TouchableOpacity>
                   
                   <TouchableOpacity 
+                    testID="settings-delete-confirm"
                     style={[styles.confirmDeleteButton, canConfirmDelete ? null : styles.disabledButton]} 
                     onPress={handleDeleteAccount}
                     disabled={!canConfirmDelete || deleteLoading}

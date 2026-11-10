@@ -1,0 +1,14 @@
+# Configuración de Maestro para Foreign (`maestro test .maestro`).
+# Los flujos se ejecutan en este orden: el registro crea la cuenta que el flujo
+# de borrar cuenta elimina al final.
+flows:
+  - "*.yaml"
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - 01_registro
+    - 02_login
+    - 03_crear_post
+    - 04_foro_pregunta
+    - 05_chat
+    - 06_borrar_cuenta

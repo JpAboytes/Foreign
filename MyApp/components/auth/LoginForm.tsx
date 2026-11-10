@@ -44,6 +44,7 @@ export default function LoginForm({
       <View style={styles.inputContainer}>
         <Ionicons name="mail-outline" size={20} color="#888" style={styles.inputIcon} />
         <TextInput
+          testID="login-email"
           style={styles.input}
           placeholder="Correo electrónico"
           placeholderTextColor="#888"
@@ -57,6 +58,7 @@ export default function LoginForm({
       <View style={styles.inputContainer}>
         <Ionicons name="lock-closed-outline" size={20} color="#888" style={styles.inputIcon} />
         <TextInput
+          testID="login-password"
           style={styles.input}
           placeholder="Contraseña"
           placeholderTextColor="#888"
@@ -70,7 +72,7 @@ export default function LoginForm({
         <ActivityIndicator size="large" color="#bb86fc" style={styles.loader} />
       ) : (
         <>
-          <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
+          <TouchableOpacity testID="login-submit" style={styles.primaryButton} onPress={handleLogin}>
             <Text style={styles.buttonText}>Iniciar Sesión</Text>
           </TouchableOpacity>
           

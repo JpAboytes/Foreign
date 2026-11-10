@@ -71,6 +71,7 @@ export default function ForumScreen() {
         />
         <View style={styles.inputContainer}>
           <TextInput
+            testID="forum-question-input"
             style={styles.input}
             placeholder="Escribe tu pregunta..."
             placeholderTextColor="#888"
@@ -79,6 +80,7 @@ export default function ForumScreen() {
             multiline
           />
           <TouchableOpacity
+            testID="forum-question-send"
             style={[styles.sendButton, !questionText.trim() && styles.sendButtonDisabled]}
             onPress={handleAddQuestion}
             disabled={!questionText.trim()}
