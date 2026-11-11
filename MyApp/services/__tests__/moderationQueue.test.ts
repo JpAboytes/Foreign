@@ -64,7 +64,19 @@ describe('moderationService (cola de moderación)', () => {
     expect(first.targetSummary).toHaveLength(141);
     expect(first.targetSummary?.endsWith('…')).toBe(true);
     expect(second.targetSummary).toBeUndefined();
-    expect(mockCalls.some((c) => c.table === 'messages')).toBe(false);
+  });
+
+  it('listOpenReports resume el texto de los mensajes reportados', async () => {
+    mockResults = {
+      reports: {
+        data: [{ id: 'r2', reporter_id: 'u1', target_type: 'message', target_id: 'm1', reason: 'Acoso', status: 'open', created_at: 'd' }],
+        error: null,
+      },
+      messages: { data: [{ id: 'm1', text: '  hola feo  ' }], error: null },
+    };
+    const [r] = await listOpenReports();
+    expect(r.targetSummary).toBe('hola feo');
+    expect(op('messages', 'in')).toEqual(['id', ['m1']]);
   });
 
   it('listOpenReports no falla si el resumen no se puede obtener', async () => {
