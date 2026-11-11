@@ -108,19 +108,20 @@ export interface AdminReport {
   reason: string;
   status: ReportStatus;
   createdAt: string;
-  // Resumen del contenido reportado, si es posible obtenerlo (mensajes y raites no se resumen).
+  // Resumen del contenido reportado, si es posible obtenerlo (los raites no se resumen; los mensajes solo los puede leer un admin mientras el reporte siga abierto).
   targetSummary?: string;
 }
 
 // tabla y columna de texto a mostrar por tipo de objetivo
 const SUMMARY_SOURCES: Partial<
-  Record<ReportTarget, { table: 'posts' | 'comments' | 'forum_questions' | 'forum_answers' | 'profiles'; column: string }>
+  Record<ReportTarget, { table: 'posts' | 'comments' | 'forum_questions' | 'forum_answers' | 'profiles' | 'messages'; column: string }>
 > = {
   post: { table: 'posts', column: 'caption' },
   comment: { table: 'comments', column: 'text' },
   forum_question: { table: 'forum_questions', column: 'title' },
   forum_answer: { table: 'forum_answers', column: 'content' },
   user: { table: 'profiles', column: 'name' },
+  message: { table: 'messages', column: 'text' },
 };
 
 const SUMMARY_MAX = 140;
