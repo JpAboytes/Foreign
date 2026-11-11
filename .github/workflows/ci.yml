@@ -26,6 +26,7 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
       - name: Expo Doctor
-        run: npx expo-doctor
+        # Versión fijada: expo-doctor 1.21.7 (2026-11-11) se publicó sin la dependencia @expo/env y falla al arrancar.
+        run: npx --yes expo-doctor@1.21.6
       - name: Tests
         run: npx jest --watchAll=false
