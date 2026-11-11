@@ -1,16 +1,26 @@
 // Consume public.push_queue y envía los push vía Expo Push API.
-// Se invoca con la service role (pg_cron / Database Webhook); verify_jwt activo.
+// La invoca pg_cron cada minuto (migración 0016) con el header x-cron-secret. Se despliega con
+// verify_jwt desactivado: la autenticación es ese secreto, que vive solo en Vault y se valida
+// con check_push_cron_secret() (ejecutable solo por service_role).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 const BATCH = 100;
 const MAX_ATTEMPTS = 3;
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
+
+  const secret = req.headers.get('x-cron-secret');
+  if (!secret) return Response.json({ error: 'unauthorized' }, { status: 401 });
+  const { data: authorized, error: authError } = await supabase.rpc('check_push_cron_secret', {
+    p_secret: secret,
+  });
+  if (authError) return Response.json({ error: authError.message }, { status: 500 });
+  if (!authorized) return Response.json({ error: 'unauthorized' }, { status: 401 });
 
   const { data: jobs, error } = await supabase
     .from('push_queue')
