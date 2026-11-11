@@ -1,4 +1,16 @@
 
+// Sentry: el plugin solo se incluye si hay org/project (la subida de sourcemaps además necesita
+// SENTRY_AUTH_TOKEN como secreto de EAS; nunca en git).
+const sentryPlugin =
+  process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
+    ? [
+        [
+          "@sentry/react-native/expo",
+          { organization: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT },
+        ],
+      ]
+    : [];
+
 export default {
   expo: {
     name: "Foreign",
@@ -100,6 +112,7 @@ export default {
             "Foreign usa la cámara para que puedas tomar fotos para tu perfil y tus publicaciones.",
         },
       ],
+      ...sentryPlugin,
     ],
     experiments: {
       typedRoutes: true,

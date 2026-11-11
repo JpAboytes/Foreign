@@ -1,10 +1,23 @@
 // app/_layout.tsx
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { UserProvider } from '../context/UserContext';
 import { NotificationProvider } from '../context/NotificationContext';
 import { RaiteProvider } from '../context/RaiteContext';
+import ErrorState from '../components/common/ErrorState';
+import { initMonitoring, captureError, wrapRoot } from '../services/monitoring';
 
-export default function RootLayout() {
+initMonitoring();
+
+/** Error boundary de expo-router: reporta el error y ofrece reintentar. */
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Promise<void> }) {
+  useEffect(() => {
+    captureError(error, { source: 'root-error-boundary' });
+  }, [error]);
+  return <ErrorState message="Algo salió mal. Intenta de nuevo." onRetry={retry} />;
+}
+
+function RootLayout() {
   return (
     <NotificationProvider>
       <UserProvider>
@@ -20,3 +33,5 @@ export default function RootLayout() {
     </NotificationProvider>
   );
 }
+
+export default wrapRoot(RootLayout);
