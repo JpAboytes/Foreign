@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   getReceivedChatSessions, 
   getSentChatSessions,
@@ -20,6 +20,8 @@ export function useChats(userId: string, isMentor: boolean) {
     messages: false
   });
   const [newMessage, setNewMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   
   // Cargar sesiones de chat
   useEffect(() => {
@@ -27,18 +29,28 @@ export function useChats(userId: string, isMentor: boolean) {
     
     setLoading(prev => ({ ...prev, sessions: true }));
     
+    const onSessions = (sessions: ChatSession[]) => {
+      setChatSessions(sessions);
+      setError(null);
+      setLoading(prev => ({ ...prev, sessions: false }));
+    };
+    const onError = () => {
+      setError('No pudimos cargar tus conversaciones.');
+      setLoading(prev => ({ ...prev, sessions: false }));
+    };
+    
     const unsubscribe = isMentor
-      ? getReceivedChatSessions(userId, (sessions) => {
-          setChatSessions(sessions);
-          setLoading(prev => ({ ...prev, sessions: false }));
-        })
-      : getSentChatSessions(userId, (sessions) => {
-          setChatSessions(sessions);
-          setLoading(prev => ({ ...prev, sessions: false }));
-        });
+      ? getReceivedChatSessions(userId, onSessions, onError)
+      : getSentChatSessions(userId, onSessions, onError);
     
     return unsubscribe;
-  }, [userId, isMentor]);
+  }, [userId, isMentor, attempt]);
+
+  // Reintenta la carga de sesiones (vuelve a suscribirse)
+  const reload = useCallback(() => {
+    setError(null);
+    setAttempt(n => n + 1);
+  }, []);
   
   // Cargar mensajes cuando cambia la sesión activa
   useEffect(() => {
@@ -91,6 +103,8 @@ export function useChats(userId: string, isMentor: boolean) {
     activeSession,
     messages,
     loading,
+    error,
+    reload,
     newMessage,
     setActiveSession,
     setNewMessage,

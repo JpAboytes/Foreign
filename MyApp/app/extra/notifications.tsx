@@ -9,6 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../../context/NotificationContext';
 import * as Haptics from 'expo-haptics';
 import MaxWidthContainer from '../../components/MaxWidthContainer';
+import ErrorState from '../../components/common/ErrorState';
+import EmptyState from '../../components/common/EmptyState';
 
 // Define los tipos de notificación para TypeScript
 interface MessageNotification {
@@ -46,7 +48,7 @@ const defaultUserImage = require('../../assets/images/img7.jpg');
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { notifications, messageNotifications, hasUnread, markAllAsRead, fetchNotifications, markAsRead } = useNotifications();
+  const { notifications, messageNotifications, hasUnread, loading: notificationsLoading, error, reload, markAllAsRead, fetchNotifications, markAsRead } = useNotifications();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -332,6 +334,15 @@ export default function NotificationsScreen() {
           )}
         </View>
         
+        {notificationsLoading && !refreshing && allNotifications.length === 0 ? (
+          <View style={styles.centered} testID="notifications-loading">
+            <ActivityIndicator size="large" color="#bb86fc" />
+          </View>
+        ) : error && allNotifications.length === 0 ? (
+          <View style={styles.centered} testID="notifications-error">
+            <ErrorState message={error} onRetry={reload} />
+          </View>
+        ) : (
         <ScrollView
           refreshControl={
             <RefreshControl 
@@ -377,14 +388,14 @@ export default function NotificationsScreen() {
             </TouchableOpacity>
             ))
           ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="notifications-outline" size={64} color="#555" />
-              <Text style={styles.emptyText}>
-                No tienes notificaciones
-              </Text>
-            </View>
+            <EmptyState
+              testID="notifications-empty"
+              icon="notifications-outline"
+              message="No tienes notificaciones."
+            />
           )}
         </ScrollView>
+        )}
       </MaxWidthContainer>
     </View>
   );
@@ -476,14 +487,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginLeft: 8,
   },
-  emptyContainer: {
-    alignItems: 'center',
+  centered: {
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     paddingTop: 100,
   },
-  emptyText: {
-    color: '#888',
-    fontSize: 16,
-    marginTop: 12,
-  }
 });

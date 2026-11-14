@@ -149,7 +149,8 @@ const liveQuery = <T>(
   name: string,
   load: () => Promise<T>,
   callback: (value: T) => void,
-  filter?: string
+  filter?: string,
+  onError?: (error: unknown) => void
 ): (() => void) => {
   let active = true;
   const run = async () => {
@@ -158,6 +159,7 @@ const liveQuery = <T>(
       if (active) callback(value);
     } catch (error) {
       console.error(`Error cargando ${name}:`, error);
+      if (active) onError?.(error);
     }
   };
   const unsubscribe = subscribeToMessages(name, run, filter);
@@ -204,12 +206,18 @@ export const startChatSession = async (
 };
 
 // Sesiones recibidas (mentor). Devuelve la función para cancelar la suscripción.
-export const getReceivedChatSessions = (mentorId: string, callback: (sessions: ChatSession[]) => void) =>
-  liveQuery('chat-recibidos', () => fetchSessions(mentorId, 'mentor_id'), callback);
+export const getReceivedChatSessions = (
+  mentorId: string,
+  callback: (sessions: ChatSession[]) => void,
+  onError?: (error: unknown) => void
+) => liveQuery('chat-recibidos', () => fetchSessions(mentorId, 'mentor_id'), callback, undefined, onError);
 
 // Sesiones enviadas (estudiante). Devuelve la función para cancelar la suscripción.
-export const getSentChatSessions = (studentId: string, callback: (sessions: ChatSession[]) => void) =>
-  liveQuery('chat-enviados', () => fetchSessions(studentId, 'student_id'), callback);
+export const getSentChatSessions = (
+  studentId: string,
+  callback: (sessions: ChatSession[]) => void,
+  onError?: (error: unknown) => void
+) => liveQuery('chat-enviados', () => fetchSessions(studentId, 'student_id'), callback, undefined, onError);
 
 const fetchMessages = async (sessionId: string): Promise<MessageRow[]> => {
   const { data, error } = await supabase
@@ -361,5 +369,6 @@ const fetchDirectConversations = async (userId: string): Promise<DirectConversat
 
 export const subscribeToDirectConversations = (
   userId: string,
-  callback: (conversations: DirectConversation[]) => void
-): (() => void) => liveQuery('conversaciones', () => fetchDirectConversations(userId), callback);
+  callback: (conversations: DirectConversation[]) => void,
+  onError?: (error: unknown) => void
+): (() => void) => liveQuery('conversaciones', () => fetchDirectConversations(userId), callback, undefined, onError);

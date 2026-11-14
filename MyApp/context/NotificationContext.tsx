@@ -76,6 +76,12 @@ interface NotificationContextType {
   notifications: Notification[];
   messageNotifications: MessageNotification[];
   hasUnread: boolean;
+  /** true hasta la primera carga (con o sin error) del usuario actual */
+  loading: boolean;
+  /** Mensaje en es-MX si la última carga falló; null si no hay error */
+  error: string | null;
+  /** Reintenta la carga mostrando el estado de carga */
+  reload: () => Promise<void>;
   fetchNotifications: () => Promise<void>;
   markAllAsRead: () => Promise<void>;
   markAsRead: (notificationId: string) => Promise<void>;
@@ -86,6 +92,9 @@ const NotificationContext = createContext<NotificationContextType>({
   notifications: [],
   messageNotifications: [],
   hasUnread: false,
+  loading: false,
+  error: null,
+  reload: async () => {},
   fetchNotifications: async () => {},
   markAllAsRead: async () => {},
   markAsRead: async () => {},
@@ -122,6 +131,8 @@ const buildMessageNotifications = (all: Notification[]): MessageNotification[] =
 export const NotificationProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [userId, setUserId] = useState<string | null>(null);
   const [allNotifications, setAllNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const userIdRef = useRef<string | null>(null);
   const router = useRouter();
   userIdRef.current = userId;
@@ -146,11 +157,25 @@ export const NotificationProvider: React.FC<{children: React.ReactNode}> = ({ ch
     if (!currentId) return;
     try {
       const list = await getNotifications(currentId);
-      if (userIdRef.current === currentId) setAllNotifications(list);
+      if (userIdRef.current === currentId) {
+        setAllNotifications(list);
+        setError(null);
+      }
     } catch (error) {
       console.error('Error al obtener notificaciones:', error);
+      if (userIdRef.current === currentId) setError('No pudimos cargar tus notificaciones.');
+    } finally {
+      if (userIdRef.current === currentId) setLoading(false);
     }
   }, []);
+
+  // Reintento manual: muestra el estado de carga hasta que termine
+  const reload = useCallback(async () => {
+    if (!userIdRef.current) return;
+    setError(null);
+    setLoading(true);
+    await fetchNotifications();
+  }, [fetchNotifications]);
 
   // Marcar todas las notificaciones (y mensajes) como leídas
   const markAllAsRead = async () => {
@@ -178,7 +203,11 @@ export const NotificationProvider: React.FC<{children: React.ReactNode}> = ({ ch
   useEffect(() => {
     const unsubscribe = subscribeToAuthChanges(user => {
       setUserId(user?.id ?? null);
-      if (!user) setAllNotifications([]);
+      if (!user) {
+        setAllNotifications([]);
+        setError(null);
+        setLoading(false);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -214,6 +243,7 @@ export const NotificationProvider: React.FC<{children: React.ReactNode}> = ({ ch
   // Carga inicial + Realtime; el canal se cierra en el cleanup
   useEffect(() => {
     if (!userId) return;
+    setLoading(true);
     fetchNotifications();
     const unsubscribe = subscribeToNotifications(userId, () => {
       fetchNotifications();
@@ -226,6 +256,9 @@ export const NotificationProvider: React.FC<{children: React.ReactNode}> = ({ ch
       notifications,
       messageNotifications,
       hasUnread,
+      loading,
+      error,
+      reload,
       fetchNotifications,
       markAllAsRead,
       markAsRead,
