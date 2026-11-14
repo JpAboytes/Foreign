@@ -6,6 +6,7 @@ export function useMentors(userUniversity?: string) {
   const [filteredMentors, setFilteredMentors] = useState<Mentor[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<{
     university: string | null;
     searchTerm: string;
@@ -16,6 +17,7 @@ export function useMentors(userUniversity?: string) {
   
   // Cargar mentores
   const loadMentors = useCallback(async () => {
+    setError(null);
     try {
       let loadedMentors: Mentor[];
       
@@ -29,6 +31,7 @@ export function useMentors(userUniversity?: string) {
       applyFilters(loadedMentors, filter.searchTerm);
     } catch (error) {
       console.error('Error cargando mentores:', error);
+      setError('No pudimos cargar los mentores.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -73,10 +76,18 @@ export function useMentors(userUniversity?: string) {
     loadMentors();
   };
   
+  // Reintentar tras un error: vuelve a mostrar el estado de carga
+  const reload = () => {
+    setLoading(true);
+    loadMentors();
+  };
+  
   return {
     mentors: filteredMentors,
     loading,
     refreshing,
+    error,
+    reload,
     filter,
     updateFilter,
     refreshMentors

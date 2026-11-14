@@ -3,7 +3,9 @@ import { FlatList, View, Text, StyleSheet, TouchableOpacity, TextInput, Activity
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
-import { subscribeToDirectConversations } from '../../services/chatService';
+import { useDirectConversations } from '../../hooks/useDirectConversations';
+import ErrorState from '../../components/common/ErrorState';
+import EmptyState from '../../components/common/EmptyState';
 import { excludeBlocked } from '../../services/moderationService';
 import { useBlockedIds } from '../../hooks/useBlockedIds';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,30 +24,23 @@ const defaultUserImage = require('../../assets/images/img7.jpg');
 
 export default function MessagesScreen() {
   const router = useRouter();
-  const [friends, setFriends] = useState<FriendInfo[]>([]);
   const [filteredFriends, setFilteredFriends] = useState<FriendInfo[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [{ user: currentUser, isLoading: authLoading }] = useAuth();
   const { blockedIds } = useBlockedIds(currentUser?.id);
 
   // Conversaciones con amigos en tiempo real (el servicio cierra el canal en el cleanup)
-  useEffect(() => {
-    if (!currentUser) {
-      if (!authLoading) setLoading(false);
-      return;
-    }
-    return subscribeToDirectConversations(currentUser.id, (conversations) => {
-      const sorted = [...conversations].sort((a, b) => {
+  const { conversations, loading, error, reload } = useDirectConversations(currentUser?.id, authLoading);
+  const friends = React.useMemo<FriendInfo[]>(
+    () =>
+      [...conversations].sort((a, b) => {
         if (a.timestamp && b.timestamp) return b.timestamp - a.timestamp;
         if (a.timestamp) return -1;
         if (b.timestamp) return 1;
         return a.name.localeCompare(b.name);
-      });
-      setFriends(sorted);
-      setLoading(false);
-    });
-  }, [currentUser?.id, authLoading]);
+      }),
+    [conversations]
+  );
 
   // Filtrar amigos cuando cambia la búsqueda
   useEffect(() => {
@@ -83,9 +78,17 @@ export default function MessagesScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.loadingContainer} testID="messages-loading">
         <ActivityIndicator size="large" color="#b388fc" />
         <Text style={styles.loadingText}>Cargando amigos...</Text>
+      </View>
+    );
+  }
+
+  if (error && friends.length === 0) {
+    return (
+      <View style={styles.container} testID="messages-error">
+        <ErrorState message={error} onRetry={reload} />
       </View>
     );
   }
@@ -142,16 +145,19 @@ export default function MessagesScreen() {
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="people-outline" size={64} color="#555" />
-            <Text style={styles.emptyText}>
-              No tienes amigos{searchQuery ? ' con esa búsqueda' : ''}
-            </Text>
-            <TouchableOpacity 
-              style={styles.addFriendButton}
-              onPress={() => router.push('/extra/friendRequest')}
-            >
-              <Text style={styles.addFriendText}>Agregar amigos</Text>
-            </TouchableOpacity>
+            <EmptyState
+              testID="messages-empty"
+              icon="people-outline"
+              message={searchQuery ? 'No hay conversaciones con esa búsqueda.' : 'Aún no tienes conversaciones.'}
+            />
+            {!searchQuery && (
+              <TouchableOpacity
+                style={styles.addFriendButton}
+                onPress={() => router.push('/extra/friendRequest')}
+              >
+                <Text style={styles.addFriendText}>Agregar amigos</Text>
+              </TouchableOpacity>
+            )}
           </View>
         }
       />
@@ -254,13 +260,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 300,
-  },
-  emptyText: {
-    color: '#888',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 16,
-    marginBottom: 24
+    gap: 16,
   },
   addFriendButton: {
     backgroundColor: '#bb86fc',
