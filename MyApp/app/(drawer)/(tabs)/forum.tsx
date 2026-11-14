@@ -10,7 +10,8 @@ import MaxWidthContainer from '../../../components/MaxWidthContainer';
 import { ForumQuestion, ForumUser } from '../../../services/forumService';
 import { useForumQuestions } from '../../../hooks/useForumQuestions';
 import QuestionCard from '../../../components/forum/QuestionCard';
-import EmptyForum from '../../../components/forum/EmptyForum';
+import ErrorState from '../../../components/common/ErrorState';
+import EmptyState from '../../../components/common/EmptyState';
 
 export default function ForumScreen() {
   const router = useRouter();
@@ -21,6 +22,8 @@ export default function ForumScreen() {
     questions, 
     loading, 
     refreshing, 
+    error,
+    reload,
     addQuestion, 
     refreshQuestions 
   } = useForumQuestions(user?.id);
@@ -48,6 +51,14 @@ export default function ForumScreen() {
     );
   }
 
+  if (error && questions.length === 0) {
+    return (
+      <View style={styles.container} testID="forum-error">
+        <ErrorState message={error} onRetry={reload} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <MaxWidthContainer>
@@ -67,7 +78,13 @@ export default function ForumScreen() {
               onAuthorBlocked={refreshQuestions}
             />
           )}
-          ListEmptyComponent={<EmptyForum />}
+          ListEmptyComponent={
+            <EmptyState
+              testID="forum-empty"
+              icon="chatbubbles-outline"
+              message="Aún no hay preguntas. ¡Haz la primera!"
+            />
+          }
         />
         <View style={styles.inputContainer}>
           <TextInput
