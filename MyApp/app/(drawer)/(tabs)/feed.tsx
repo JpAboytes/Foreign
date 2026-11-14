@@ -8,7 +8,8 @@ import {
   SafeAreaView,
   RefreshControl,
   Platform,
-  Dimensions
+  Dimensions,
+  ActivityIndicator
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -16,6 +17,8 @@ import { useUser } from '../../../context/UserContext';
 import MaxWidthContainer from '../../../components/MaxWidthContainer';
 import FriendsSlider from '../../../components/feed/FriendsSlider';
 import PostDetailModal from '../../../components/feed/PostDetailModal';
+import ErrorState from '../../../components/common/ErrorState';
+import EmptyState from '../../../components/common/EmptyState';
 import { usePosts } from '../../../hooks/usePosts';
 import { useComments } from '../../../hooks/useComments';
 import { Post } from '../../../services/postService';
@@ -34,6 +37,9 @@ export default function FeedScreen() {
     universityPosts,
     friendPosts,
     refreshing,
+    loading,
+    error,
+    reload,
     selectedPost,
     isLiked,
     setSelectedPost,
@@ -117,6 +123,15 @@ export default function FeedScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <MaxWidthContainer>
+        {loading ? (
+          <View style={styles.centered} testID="feed-loading">
+            <ActivityIndicator size="large" color="#bb86fc" />
+          </View>
+        ) : error && universityPosts.length === 0 && friendPosts.length === 0 ? (
+          <View style={styles.centered} testID="feed-error">
+            <ErrorState message={error} onRetry={reload} />
+          </View>
+        ) : (
         <FlatList
           data={universityPosts}
           keyExtractor={(item) => item.id}
@@ -129,12 +144,20 @@ export default function FeedScreen() {
               onPressItem={goToPostDetail} 
             />
           }
+          ListEmptyComponent={
+            <EmptyState
+              testID="feed-empty"
+              icon="images-outline"
+              message="Aún no hay publicaciones de tu universidad."
+            />
+          }
           style={styles.container}
           contentContainerStyle={styles.contentContainer}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={refreshPosts} />
           }
         />
+        )}
   
         {/* Post Detail Modal */}
         <PostDetailModal
@@ -168,6 +191,11 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#121212' 
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   contentContainer: {
     padding: 16,

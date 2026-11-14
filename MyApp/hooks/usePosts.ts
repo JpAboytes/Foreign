@@ -17,6 +17,8 @@ export function usePosts(currentUser: UserProfile | null) {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isLiked, setIsLiked] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Actualizar estado de "isLiked" cuando cambia el post seleccionado
   useEffect(() => {
@@ -29,6 +31,7 @@ export function usePosts(currentUser: UserProfile | null) {
   const fetchPosts = useCallback(async () => {
     if (!currentUser?.uid) return;
 
+    setError(null);
     try {
       const [byUniversity, friendIds, blockedIds] = await Promise.all([
         currentUser.university ? getPostsByUniversity(currentUser.university) : Promise.resolve([]),
@@ -40,6 +43,9 @@ export function usePosts(currentUser: UserProfile | null) {
       setFriendPosts(visible(await getPostsByFriends(friendIds)));
     } catch (error) {
       console.error('Error fetching posts:', error);
+      setError('No pudimos cargar las publicaciones.');
+    } finally {
+      setLoading(false);
     }
   }, [currentUser?.uid, currentUser?.university]);
 
@@ -102,10 +108,13 @@ export function usePosts(currentUser: UserProfile | null) {
     universityPosts,
     friendPosts,
     refreshing,
+    loading,
+    error,
     selectedPost,
     isLiked,
     setSelectedPost,
     fetchPosts,
+    reload: fetchPosts,
     refreshPosts,
     handleToggleLike,
     handleDeletePost,
