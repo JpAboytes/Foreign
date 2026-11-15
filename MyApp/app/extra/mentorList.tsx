@@ -16,6 +16,8 @@ import { useUser } from '../../context/UserContext';
 import { useMentors } from '../../hooks/useMentors';
 import MentorCard from '../../components/mentor/MentorCard';
 import { Mentor } from '../../services/mentorService';
+import ErrorState from '../../components/common/ErrorState';
+import EmptyState from '../../components/common/EmptyState';
 import MentorDetailModal from '../../components/mentor/MentorDetailModal';
 
 export default function MentorListScreen() {
@@ -27,6 +29,8 @@ export default function MentorListScreen() {
     mentors, 
     loading, 
     refreshing, 
+    error,
+    reload,
     filter, 
     updateFilter, 
     refreshMentors 
@@ -50,13 +54,21 @@ export default function MentorListScreen() {
   
   if (loading && !refreshing) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
+      <View style={[styles.container, styles.centerContent]} testID="mentorList-loading">
         <ActivityIndicator size="large" color="#bb86fc" />
         <Text style={styles.loadingText}>Cargando mentores...</Text>
       </View>
     );
   }
   
+  if (error && mentors.length === 0) {
+    return (
+      <View style={styles.container} testID="mentorList-error">
+        <ErrorState message={error} onRetry={reload} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -105,15 +117,11 @@ export default function MentorListScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={refreshMentors} />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="people-outline" size={64} color="#555" />
-            <Text style={styles.emptyText}>
-              No se encontraron mentores disponibles
-            </Text>
-            <Text style={styles.emptySubText}>
-              Intenta con otros filtros o vuelve más tarde
-            </Text>
-          </View>
+          <EmptyState
+            testID="mentorList-empty"
+            icon="people-outline"
+            message="No hay mentores disponibles por ahora."
+          />
         }
       />
       
@@ -175,22 +183,5 @@ const styles = StyleSheet.create({
   filterText: {
     color: '#fff',
     fontSize: 14,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-  },
-  emptyText: {
-    color: '#fff',
-    fontSize: 18,
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  emptySubText: {
-    color: '#888',
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
   },
 });

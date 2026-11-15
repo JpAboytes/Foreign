@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { 
   View, 
   FlatList, 
@@ -13,6 +13,8 @@ import ChatSessionCard from '../../components/mentor/ChatSessionCard';
 import { excludeBlocked } from '../../services/moderationService';
 import { useBlockedIds } from '../../hooks/useBlockedIds';
 import { ChatSession } from '../../services/mentorService';
+import ErrorState from '../../components/common/ErrorState';
+import EmptyState from '../../components/common/EmptyState';
 
 export default function ReceivedChatsScreen() {
   const router = useRouter();
@@ -23,6 +25,8 @@ export default function ReceivedChatsScreen() {
   const { 
     chatSessions, 
     loading, 
+    error,
+    reload,
     setActiveSession 
   } = useChats(userId, true);
   
@@ -34,19 +38,29 @@ export default function ReceivedChatsScreen() {
     });
   };
   
+  const visibleSessions = excludeBlocked(chatSessions, blockedIds, (s) => s.studentId);
+
   if (loading.sessions) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
+      <View style={[styles.container, styles.centerContent]} testID="receivedChats-loading">
         <ActivityIndicator size="large" color="#bb86fc" />
         <Text style={styles.loadingText}>Cargando conversaciones...</Text>
       </View>
     );
   }
   
+  if (error && chatSessions.length === 0) {
+    return (
+      <View style={styles.container} testID="receivedChats-error">
+        <ErrorState message={error} onRetry={reload} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
-        data={excludeBlocked(chatSessions, blockedIds, (s) => s.studentId)}
+        data={visibleSessions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ChatSessionCard
@@ -56,14 +70,11 @@ export default function ReceivedChatsScreen() {
           />
         )}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              No has recibido mensajes todavía
-            </Text>
-            <Text style={styles.emptySubText}>
-              Los estudiantes que te contacten aparecerán aquí
-            </Text>
-          </View>
+          <EmptyState
+            testID="receivedChats-empty"
+            icon="chatbubbles-outline"
+            message="Aún no tienes chats recibidos."
+          />
         }
       />
     </View>
@@ -83,22 +94,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginTop: 12,
     fontSize: 16,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-  },
-  emptyText: {
-    color: '#fff',
-    fontSize: 18,
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  emptySubText: {
-    color: '#888',
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
   },
 });

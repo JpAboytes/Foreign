@@ -113,6 +113,17 @@ describe('chatService', () => {
     expect(mock.removeChannel).toHaveBeenCalledTimes(1);
   });
 
+  it('getReceivedChatSessions avisa por onError si la carga falla y no tras cancelar', async () => {
+    const cb = jest.fn();
+    const onError = jest.fn();
+    mock.queue('chat_sessions', null, { message: 'boom' });
+    const unsubscribe = getReceivedChatSessions('men', cb, onError);
+    await flush();
+    expect(cb).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledTimes(1);
+    unsubscribe();
+  });
+
   it('findDirectSession devuelve null si no hay sesión', async () => {
     mock.queue('chat_sessions', null);
     expect(await findDirectSession('a', 'b')).toBeNull();
