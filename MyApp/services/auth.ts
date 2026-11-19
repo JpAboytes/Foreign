@@ -140,7 +140,7 @@ export const signInWithApple = async (): Promise<AuthUser | null> => {
 };
 
 // Registra que el usuario autenticado aceptó los términos vigentes (altas con Google/Apple,
-// o cuentas existentes que aún no aceptan). RLS (profiles_update_own) limita la escritura a su perfil.
+// o cuentas existentes que aún no aceptan). RLS (profiles_update) limita la escritura a su perfil.
 export const acceptTerms = async (userId: string): Promise<void> => {
   const { error } = await supabase
     .from('profiles')
