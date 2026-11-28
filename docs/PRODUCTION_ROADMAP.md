@@ -1,6 +1,6 @@
 # Foreign — Roadmap a producción
 
-Estado: **Fase 3 (Supabase) en `main`; Firebase retirado** · Actualizado: 2026-11-12
+Estado: **Fase 3 (Supabase) en `main`; Firebase retirado** · Actualizado: 2026-11-28
 
 ## 1. Diagnóstico del estado actual
 
@@ -77,7 +77,8 @@ Definidos en `.claude/agents/`. El **tech-lead** orquesta y los demás ejecutan.
 - [~] Perfiles de `eas.json` con entorno y canal por perfil (development/preview/production; variables con `eas env:create --environment <env>`) — hecho 2026-11-04. Pendiente: proyecto Supabase de staging (el plan puede generar gasto; decisión del dueño) y crear las variables en EAS
 - [ ] Credenciales gestionadas por EAS; App Store Connect API key; service account de Play
 - [ ] TestFlight + Play Internal Testing → cerrado → producción
-- [ ] Fichas de las tiendas: textos, screenshots, clasificación por edad, Data Safety, cuenta demo
+- [~] Fichas de las tiendas: textos, screenshots, clasificación por edad, Data Safety, cuenta demo
+  - Borradores en `docs/store/` (2026-11-28): textos es-MX y en-US con conteos de caracteres, App Privacy y Data Safety, clasificación por edad, procedimiento de cuenta demo y checklist de assets (icono 1024 sin alfa: cumple). Pendiente: screenshots reales y feature graphic, URLs públicas (soporte, marketing, privacidad, borrado, términos), revisión y aprobación del dueño (dudas listadas en cada archivo), crear la cuenta demo y capturar todo en las consolas.
 - [ ] EAS Update en el canal `production` para hotfixes
 
 ## 4. Decisiones del dueño (2026-10-18)
